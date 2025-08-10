@@ -1,0 +1,30 @@
+{
+  "name": "clipboard-ui",
+  "version": "1.0.0",
+  "main": "dist/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:main": "tsc -p tsconfig.main.json",
+    "watch:main": "tsc -p tsconfig.main.json --watch",
+    "dev:renderer": "vite --port 5174 --strictPort",
+  "start:electron": "cross-env NODE_ENV=development wait-on dist/main/main.js http://localhost:5174 && electronmon .",
+    "dev": "concurrently -k \"npm:watch:main\" \"npm:dev:renderer\" \"npm:start:electron\"",
+    "build": "npm run build:main && vite build"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "concurrently": "^8.2.0",
+    "cross-env": "^10.0.0",
+    "electron": "^28.0.0",
+    "electronmon": "^2.0.3",
+  "sass": "^1.77.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0",
+    "wait-on": "^8.0.4"
+  },
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
