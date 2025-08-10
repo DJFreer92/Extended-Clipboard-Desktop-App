@@ -126,14 +126,6 @@ body {
 
 .filter-select .icon { color: var(--muted); display: inline-flex; }
 
-.filter-select select {
-	appearance: none;
-	background: #121828;
-	color: var(--text);
-	border: 1px solid var(--border);
-	border-radius: 10px;
-	padding: 6px 10px;
-}
 
 .filter-select select:focus { outline: none; box-shadow: none; }
 .filter-select select:hover { border-color: rgba(108, 162, 255, 0.35); background: #131a2a; }
