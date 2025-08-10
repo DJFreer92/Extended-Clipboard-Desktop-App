@@ -4,6 +4,7 @@ import ClipList from "./components/ClipList";
 import "./styles/styles.scss";
 
 function App() {
+  const [page, setPage] = useState<"home" | "settings">("home");
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
   const [clips, setClips] = useState<{ Content: string; Timestamp: number }[]>([
@@ -79,9 +80,8 @@ function App() {
 
   const handleCopy = async (clip: { Content: string }) => {
     try {
-      // Prefer Electron clipboard if exposed, fallback to Web Clipboard API
-      // @ts-ignore
-      const electronClipboard = (window as any)?.electronAPI?.clipboard;
+  // Prefer Electron clipboard if exposed, fallback to Web Clipboard API
+  const electronClipboard = window?.electronAPI?.clipboard;
       if (electronClipboard?.writeText) {
         electronClipboard.writeText(clip.Content);
       } else if (navigator.clipboard?.writeText) {
@@ -100,21 +100,42 @@ function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1>Extended Clipboard</h1>
-        <p className="subtitle">Your recent copied text, at a glance</p>
+        <div className="header-bar">
+          <div className="header-left">
+            <h1>Extended Clipboard</h1>
+            <p className="subtitle">Your recent copied text, at a glance</p>
+          </div>
+          <div className="header-right">
+            {page !== "settings" && (
+              <button
+                type="button"
+                className="icon-button settings-btn"
+                aria-label="Open settings"
+                title="Settings"
+                onClick={() => setPage("settings")}
+              >
+                <span className="icon icon-settings" aria-hidden />
+              </button>
+            )}
+          </div>
+        </div>
       </header>
       <main className="app-main">
+        {page === "settings" ? (
+          <section className="settings-page">
+            <h2>Settings</h2>
+            <p>Content coming soon.</p>
+            <button type="button" className="icon-button" aria-label="Back" title="Back" onClick={() => setPage("home")}>
+              <span className="icon icon-back" aria-hidden />
+            </button>
+          </section>
+        ) : (
         <div className={`search-row ${terms.length > 0 && filtered.length === 0 ? "no-results" : ""}`}>
           <div className="search-count" aria-live="polite">
             {resultCount} {isFiltered ? (resultCount === 1 ? "matching result" : "matching results") : (resultCount === 1 ? "item" : "items")}
           </div>
           <div className="filter-select" role="group" aria-label="Filter by date range">
-            <span className="icon" aria-hidden>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" />
-                <path d="M16 2v4M8 2v4M3 10h18" />
-              </svg>
-            </span>
+            <span className="icon icon-calendar" aria-hidden />
             <select
               value={range}
               onChange={(e) => setRange(e.target.value as any)}
@@ -139,12 +160,7 @@ function App() {
               aria-label="Search"
               title="Search"
             >
-              <span className="icon" aria-hidden>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="M21 21l-4.35-4.35" />
-                </svg>
-              </span>
+              <span className="icon icon-search" aria-hidden />
             </button>
             <input
               type="search"
@@ -153,7 +169,7 @@ function App() {
               placeholder="Search clips"
               aria-label="Search clips"
             />
-            {query && (
+      {query && (
               <button
                 type="button"
                 className="icon-button clear-btn"
@@ -161,12 +177,15 @@ function App() {
                 onClick={() => setQuery("")}
                 title="Clear"
               >
-                <span className="icon" aria-hidden>✕</span>
+        <span className="icon icon-close" aria-hidden />
               </button>
             )}
           </form>
         </div>
-        <ClipList clips={filtered} onCopy={handleCopy} onDelete={handleDelete} isSearching={terms.length > 0} />
+        )}
+        {page === "home" && (
+          <ClipList clips={filtered} onCopy={handleCopy} onDelete={handleDelete} isSearching={terms.length > 0} />
+        )}
       </main>
     </div>
   );
