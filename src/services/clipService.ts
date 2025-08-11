@@ -73,7 +73,7 @@ export const clipService = {
 
   // New pagination and filter endpoints
   async getAllClipsAfterId(beforeId: number): Promise<ApiClip[]> {
-    const data = await http<ApiClips>(`/clipboard/get_all_clips_after_id?before_id=${encodeURIComponent(beforeId)}`);
+    const data = await http<ApiClips>(`/clipboard/get_all_clips_after_id?after_id=${encodeURIComponent(beforeId)}`);
     return data.clips ?? [];
   },
 

@@ -1,6 +1,12 @@
 import { Fragment, useMemo, useState } from "react";
 import { ClipModel } from "../../models/clip";
 
+type ClipGroup = {
+  key: string;
+  label: string;
+  items: Array<{ clip: ClipModel; index: number }>;
+};
+
 type Props = {
   clips: ClipModel[];
   onCopy: (clip: ClipModel, index: number) => void;
@@ -50,7 +56,7 @@ export default function ClipList({ clips, onCopy, onDelete, isSearching }: Props
 
   // Group clips by calendar date
   const groups = useMemo(() => {
-  const acc: Array<{ key: string; label: string; items: Array<{ clip: ClipModel; index: number }> }> = [];
+  const acc: ClipGroup[] = [];
     let currentKey = "";
     clips.forEach((clip, index) => {
   const d = toDate(clip.Timestamp);

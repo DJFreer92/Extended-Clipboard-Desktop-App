@@ -26,8 +26,8 @@ describe('clipService', () => {
 		expect(res).toEqual([]);
 	});
 
-		it('addClip posts payload with id and timestamp', async () => {
-			(globalThis.fetch as any).mockResolvedValue(okJson({ ok: true }));
+	it('addClip posts payload with id and timestamp', async () => {
+		(globalThis.fetch as any).mockResolvedValue(okJson({ ok: true }));
 		await clipService.addClip('hello');
 		const call = (globalThis.fetch as any).mock.calls[0];
 		expect(call[0]).toBe('/clipboard/add_clip');
@@ -39,14 +39,14 @@ describe('clipService', () => {
 		expect(payload).toHaveProperty('timestamp');
 	});
 
-		it('deleteClip posts with id', async () => {
-			(globalThis.fetch as any).mockResolvedValue(okJson({ ok: true }));
+	it('deleteClip posts with id', async () => {
+		(globalThis.fetch as any).mockResolvedValue(okJson({ ok: true }));
 		await clipService.deleteClip(42);
 		expect(globalThis.fetch).toHaveBeenCalledWith('/clipboard/delete_clip?id=42', expect.objectContaining({ method: 'POST' }));
 	});
 
-		it('deleteAllClips posts', async () => {
-			(globalThis.fetch as any).mockResolvedValue(okJson({ ok: true }));
+	it('deleteAllClips posts', async () => {
+		(globalThis.fetch as any).mockResolvedValue(okJson({ ok: true }));
 		await clipService.deleteAllClips();
 		expect(globalThis.fetch).toHaveBeenCalledWith('/clipboard/delete_all_clips', expect.objectContaining({ method: 'POST' }));
 	});
