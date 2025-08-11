@@ -180,9 +180,9 @@ body {
 }
 
 .search-row {
-	display: flex;
+	display: grid;
+	grid-template-columns: auto 1fr;
 	align-items: center;
-	justify-content: flex-end;
 	gap: 10px;
 	margin-bottom: 0;
 }
@@ -210,6 +210,7 @@ body {
 	border-radius: 12px;
 	box-shadow: var(--shadow);
 	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+	cursor: pointer;
 }
 
 .clip-item:hover {
@@ -263,6 +264,8 @@ body {
 .icon-copy { -webkit-mask: url('../../assets/icons/content_copy_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/content_copy_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
 .icon-delete { -webkit-mask: url('../../assets/icons/delete_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/delete_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
 .icon-chevron { -webkit-mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
+.icon-refresh { -webkit-mask: url('../../assets/icons/refresh_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/refresh_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
+.icon-home { -webkit-mask: url('../../assets/icons/home_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/home_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
 
 /* Icons default to 18x18; copy/delete use the same size for consistency */
 /* (no per-button overrides) */
@@ -323,6 +326,51 @@ body {
 	color: var(--text);
 }
 
+.search-left { display: inline-flex; }
+.search-right { display: inline-flex; gap: 10px; align-items: center; justify-content: flex-end; }
+
+.refresh-btn { color: var(--muted); }
+.refresh-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+.clips-container.is-empty { padding-top: 16px; }
+
+/* Modal title tweaks to allow inline date */
+.modal-title { display: flex; align-items: baseline; gap: 6px; }
+
+
+/* Settings page */
+.settings-page {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	max-width: 600px;
+	padding: 12px 0;
+}
+
+.danger-button {
+	appearance: none;
+	border: 1px solid rgba(248, 113, 113, 0.4);
+	color: #0d1220;
+	background: rgba(248, 113, 113, 0.15);
+	border-radius: 10px;
+	padding: 10px 12px;
+	font-weight: 600;
+	cursor: pointer;
+	transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease, color 0.12s ease;
+}
+
+.danger-button:hover {
+	background: var(--danger);
+	color: #0d1220;
+	border-color: transparent;
+	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.25);
+}
+
+.danger-button:focus-visible {
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.35);
+}
+
 /* Date separator styles */
 .date-separator {
 	list-style: none;
@@ -362,3 +410,44 @@ body {
 
 .chevron { display: inline-flex; transition: transform 0.15s ease; }
 .chevron.collapsed { transform: rotate(-90deg); }
+
+/* Modal styles */
+.modal-overlay {
+	position: fixed;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.4);
+	backdrop-filter: blur(4px) saturate(120%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100;
+}
+
+.modal {
+	width: min(800px, 90vw);
+	max-height: min(80vh, 800px);
+	background: linear-gradient(180deg, var(--panel), var(--panel-2));
+	border: 1px solid var(--border);
+	border-radius: 12px;
+	box-shadow: var(--shadow);
+	overflow: hidden;
+}
+
+.modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--border);
+}
+
+.modal-title { margin: 0; font-size: 14px; color: var(--text); }
+
+.modal-body {
+	padding: 12px;
+	color: var(--text);
+	max-height: calc(min(80vh, 800px) - 48px);
+	overflow: auto;
+	white-space: pre-wrap;
+	word-wrap: break-word;
+}

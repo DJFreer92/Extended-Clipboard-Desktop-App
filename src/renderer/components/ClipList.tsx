@@ -1,13 +1,10 @@
 import { Fragment, useMemo, useState } from "react";
-interface Clip {
-  Content: string;
-  Timestamp: Date | number | string; // UTC timestamp or ISO string
-}
+import { ClipModel } from "../../models/clip";
 
 type Props = {
-  clips: Clip[];
-  onCopy: (clip: Clip, index: number) => void;
-  onDelete: (index: number) => void;
+  clips: ClipModel[];
+  onCopy: (clip: ClipModel, index: number) => void;
+  onDelete: (id: number) => void; // delete by id to avoid index mismatch under filtering
   isSearching?: boolean;
 };
 
@@ -46,21 +43,17 @@ function formatFullDate(d: Date): string {
 }
 
 export default function ClipList({ clips, onCopy, onDelete, isSearching }: Props) {
-  if (!clips?.length) {
-    return (
-      <div className="empty-state" role="status" aria-live="polite">
-        <p>{isSearching ? "No results" : "No clips yet"}</p>
-        {!isSearching && <small>Copy something to see it here.</small>}
-      </div>
-    );
-  }
+  // Modal state for viewing full content
+  const [openClip, setOpenClip] = useState<ClipModel | null>(null);
+  const closeModal = () => setOpenClip(null);
+  const hasClips = !!(clips && clips.length);
 
   // Group clips by calendar date
   const groups = useMemo(() => {
-    const acc: Array<{ key: string; label: string; items: Array<{ clip: Clip; index: number }> }> = [];
+  const acc: Array<{ key: string; label: string; items: Array<{ clip: ClipModel; index: number }> }> = [];
     let currentKey = "";
     clips.forEach((clip, index) => {
-      const d = toDate(clip.Timestamp);
+  const d = toDate(clip.Timestamp);
       const k = dateKey(d);
       if (k !== currentKey) {
         currentKey = k;
@@ -78,7 +71,14 @@ export default function ClipList({ clips, onCopy, onDelete, isSearching }: Props
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
-    <ul className="clip-list" role="list">
+    <Fragment>
+    {!hasClips ? (
+      <div className="empty-state" role="status" aria-live="polite">
+        <p>{isSearching ? "No results" : "No clips yet"}</p>
+        {!isSearching && <small>Copy something to see it here.</small>}
+      </div>
+    ) : (
+      <ul className="clip-list" role="list">
       {groups.map((g) => (
         <Fragment key={`grp-${g.key}`}>
       <li key={`sep-${g.key}`} className={`date-separator ${collapsed[g.key] ? "is-collapsed" : ""}`} aria-label={`${g.label} (${g.items.length})`}>
@@ -99,13 +99,19 @@ export default function ClipList({ clips, onCopy, onDelete, isSearching }: Props
           </li>
           {!collapsed[g.key] && (
             g.items.map(({ clip, index }) => (
-              <li key={index} className="clip-item" role="listitem">
+              <li
+                key={index}
+                className="clip-item"
+                role="listitem"
+                onClick={() => setOpenClip(clip)}
+              >
                 <div className="clip-text">{clip.Content}</div>
                 <button
                   type="button"
                   className="icon-button copy-btn"
                   aria-label="Copy clip"
-                  onClick={() => onCopy(clip, index)}
+                  title="Copy to clipboard"
+                  onClick={(e) => { e.stopPropagation(); onCopy(clip, index); }}
                 >
                   <span className="icon icon-copy" aria-hidden="true" />
                 </button>
@@ -113,7 +119,8 @@ export default function ClipList({ clips, onCopy, onDelete, isSearching }: Props
                   type="button"
                   className="icon-button delete-btn"
                   aria-label="Delete clip"
-                  onClick={() => onDelete(index)}
+                  title="Delete clip"
+                  onClick={(e) => { e.stopPropagation(); onDelete(clip.Id); }}
                 >
                   <span className="icon icon-delete" aria-hidden="true" />
                 </button>
@@ -122,6 +129,42 @@ export default function ClipList({ clips, onCopy, onDelete, isSearching }: Props
           )}
         </Fragment>
       ))}
-    </ul>
+      </ul>
+    )}
+    {/* Modal for viewing full clip content */}
+    {openClip && (
+      <div
+        className="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        onClick={closeModal}
+      >
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3 className="modal-title">
+              Clip
+              {(() => {
+                const d = toDate(openClip.Timestamp);
+                const label = `${formatRelative(d)} | ${formatFullDate(d)}`;
+                return <span style={{ marginLeft: 8, color: 'var(--muted)', fontWeight: 400 }}>({label})</span>;
+              })()}
+            </h3>
+            <button
+              type="button"
+              className="icon-button close-btn"
+              aria-label="Close"
+              title="Close"
+              onClick={closeModal}
+            >
+              <span className="icon icon-close" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="modal-body">
+            {openClip.Content}
+          </div>
+        </div>
+      </div>
+    )}
+  </Fragment>
   );
 }
