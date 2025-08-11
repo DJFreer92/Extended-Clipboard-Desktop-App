@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
-import ClipList from '../../src/renderer/components/ClipList';
+import ClipList from '../../src/renderer/components/clipList';
 import type { ClipModel } from '../../src/models/clip';
 
 function mkClip(id: number, content: string, ts: number): ClipModel {
