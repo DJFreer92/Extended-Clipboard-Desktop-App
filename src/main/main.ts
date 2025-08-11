@@ -11,7 +11,11 @@ function createWindow() {
 	center: true,
 	backgroundColor: "#ffffff",
 	webPreferences: {
-		preload: path.join(__dirname, "preload.js")
+	preload: path.join(__dirname, "preload.js"),
+	nodeIntegration: false,
+	contextIsolation: true,
+	webSecurity: true,
+	disableBlinkFeatures: "Auxclick"
 	}
 	});
 
