@@ -19,10 +19,26 @@ export default function HomePage() {
   const pageSize = 50;
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const selfCopyGuardRef = useRef<{ text: string; expires: number } | null>(null);
+  // Track last clipboard text we intentionally copied (so polling doesn't treat it as new)
+  const lastClipboardTextRef = useRef<string>("");
+  // Simple timed suppression to skip adding a new clip for a short window after an in-app copy
+  const suppressNextAddRef = useRef<number>(0);
+  const pendingDeletionRef = useRef<Record<number, { clip: ClipModel; index: number }>>({});
 
   // Search state
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<Range>("all");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedApps, setSelectedApps] = useState<string[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [allApps, setAllApps] = useState<string[]>([]);
+  const [showTagMenu, setShowTagMenu] = useState(false);
+  const [showAppMenu, setShowAppMenu] = useState(false);
+  const [showTimeMenu, setShowTimeMenu] = useState(false);
+  const tagMenuRef = useRef<HTMLDivElement | null>(null);
+  const appMenuRef = useRef<HTMLDivElement | null>(null);
+  const timeMenuRef = useRef<HTMLDivElement | null>(null);
 
   const terms = useMemo(() =>
     query
@@ -46,32 +62,68 @@ export default function HomePage() {
 
   const searchCSV = useMemo(() => terms.join(","), [terms]);
 
-  const isFiltered = terms.length > 0 || range !== "all";
+  const isFiltered = terms.length > 0 || range !== "all" || favoritesOnly || selectedTags.length > 0 || selectedApps.length > 0;
   const displayCount = isFiltered ? filteredCount : totalCount;
+
+  // Debounced taxonomy refresh to avoid redundant API calls
+  const taxonomyRefreshTimeout = useRef<NodeJS.Timeout | null>(null);
+  const taxonomyLastFetched = useRef<number>(0);
+  const TAXONOMY_DEBOUNCE_MS = 500;
+
+  const refreshTaxonomy = (immediate = false) => {
+    if (immediate) {
+      (async () => {
+        try {
+          const [tagsResp, appsResp] = await Promise.all([
+            clipService.getAllTags().catch(() => []),
+            clipService.getAllFromApps().catch(() => []),
+          ]);
+          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
+          if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
+        } catch {}
+      })();
+      return;
+    }
+    if (taxonomyRefreshTimeout.current) clearTimeout(taxonomyRefreshTimeout.current);
+    taxonomyRefreshTimeout.current = setTimeout(async () => {
+      const now = Date.now();
+      if (now - taxonomyLastFetched.current < TAXONOMY_DEBOUNCE_MS) return;
+      taxonomyLastFetched.current = now;
+      try {
+        const [tagsResp, appsResp] = await Promise.all([
+          clipService.getAllTags().catch(() => []),
+          clipService.getAllFromApps().catch(() => []),
+        ]);
+        if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
+        if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
+      } catch {}
+    }, TAXONOMY_DEBOUNCE_MS);
+  };
 
   // Core loaders (paginated)
   const loadFirstPage = async () => {
     setLoading(true);
     if (isFiltered) setCountLoading(true);
     try {
-      if (isFiltered) {
-        // counts first
-        let cnt = 0;
-        try {
-          cnt = await clipService.getNumFilteredClips(searchCSV, timeFrame);
-          setFilteredCount(cnt);
-        } catch (e) {
-          console.error("Failed to fetch filtered count", e);
-          setFilteredCount(0);
-          // count failure alone shouldn't trigger main fetch error yet
-        }
-        setCountLoading(false);
-        const page = await clipService.filterNClips(searchCSV, timeFrame, pageSize);
-        const mapped = page.map(fromApi);
-        setClips(mapped);
-        setHasMore(mapped.length > 0 && mapped.length < cnt ? true : (mapped.length === pageSize));
-        setFetchError(null); // success path
-      } else {
+  if (isFiltered) {
+    // counts first
+    let cnt = 0;
+    try {
+      cnt = await clipService.getNumFilteredClips(searchCSV, timeFrame, selectedTags, selectedApps, favoritesOnly);
+      setFilteredCount(cnt);
+    } catch (e) {
+      console.error("Failed to fetch filtered count", e);
+      setFilteredCount(0);
+      // count failure alone shouldn't trigger main fetch error yet
+    }
+    setCountLoading(false);
+    const page = await clipService.filterNClips(searchCSV, timeFrame, pageSize, selectedTags, selectedApps, favoritesOnly);
+    const mapped = page.map(fromApi);
+    setClips(mapped);
+    refreshTaxonomy(true); // immediate fetch for tests / initial render
+    setHasMore(mapped.length > 0 && mapped.length < cnt ? true : (mapped.length === pageSize));
+    setFetchError(null); // success path
+  } else {
         let cnt = 0;
         try {
           cnt = await clipService.getNumClips();
@@ -85,6 +137,7 @@ export default function HomePage() {
         const page = await clipService.getRecentClips(pageSize);
         const mapped = page.map(fromApi);
         setClips(mapped);
+  refreshTaxonomy(true);
         setHasMore(mapped.length > 0 && (mapped.length < cnt ? true : mapped.length === pageSize));
         setFetchError(null); // success path
       }
@@ -95,6 +148,7 @@ export default function HomePage() {
         const dto = await clipService.getAllClips();
         const mapped = dto.map(fromApi);
         setClips(mapped);
+  refreshTaxonomy(true);
         setHasMore(false);
         setTotalCount(mapped.length);
         setFetchError(null); // fallback success clears error
@@ -116,12 +170,13 @@ export default function HomePage() {
     try {
       let page;
       if (isFiltered) {
-        page = await clipService.filterNClipsBeforeId(searchCSV, timeFrame, pageSize, oldestId);
+        page = await clipService.filterNClipsBeforeId(searchCSV, timeFrame, pageSize, oldestId, selectedTags, selectedApps, favoritesOnly);
       } else {
         page = await clipService.getNClipsBeforeId(pageSize, oldestId);
       }
       const mapped = page.map(fromApi);
       setClips((prev) => [...prev, ...mapped]);
+  refreshTaxonomy(true);
       // Determine if more pages exist
       if (isFiltered) {
         const expected = (clips.length + mapped.length);
@@ -153,7 +208,49 @@ export default function HomePage() {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchCSV, timeFrame]);
+  }, [searchCSV, timeFrame, favoritesOnly, selectedTags.join(','), selectedApps.join(',')]);
+
+  // Load tags and apps taxonomy on mount
+  useEffect(() => {
+  refreshTaxonomy(true);
+    // Cleanup debounce timeout on unmount
+    return () => {
+      if (taxonomyRefreshTimeout.current) clearTimeout(taxonomyRefreshTimeout.current);
+    };
+  }, [clipService, setAllTags, setAllApps]);
+
+  const toggleFavoriteClip = async (clip: ClipModel) => {
+    try {
+      if (clip.IsFavorite) {
+        await clipService.removeFavorite(clip.Id);
+      } else {
+        await clipService.addFavorite(clip.Id);
+      }
+      setClips(prev => prev.map(c => c.Id === clip.Id ? { ...c, IsFavorite: !c.IsFavorite } : c));
+      if (favoritesOnly && !clip.IsFavorite) {
+        // If adding favorite while favoritesOnly filter is active we keep it; removing when active will be pruned next refresh
+      }
+    } catch (e) {
+      console.error('Failed to toggle favorite', e);
+    }
+  };
+
+  const handleMultiSelect = (value: string, kind: 'tags' | 'apps') => {
+    const [selected, setter] = kind === 'tags' ? [selectedTags, setSelectedTags] : [selectedApps, setSelectedApps];
+    if (selected.includes(value)) setter(selected.filter(v => v !== value)); else setter([...selected, value]);
+  };
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const t = e.target as Node;
+      if (showTagMenu && tagMenuRef.current && !tagMenuRef.current.contains(t)) setShowTagMenu(false);
+      if (showAppMenu && appMenuRef.current && !appMenuRef.current.contains(t)) setShowAppMenu(false);
+      if (showTimeMenu && timeMenuRef.current && !timeMenuRef.current.contains(t)) setShowTimeMenu(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showTagMenu, showAppMenu, showTimeMenu]);
 
   // Watch system clipboard for new text and add via API (ignore self-copies), then refresh top incrementally
   useEffect(() => {
@@ -162,17 +259,44 @@ export default function HomePage() {
     const bg = (window as any)?.electronAPI?.background;
     let unsubscribe: (() => void) | undefined;
     let stopped = false;
+    // Helper to decide if we should suppress adding a clipboard text (self-copy or duplicate)
+    const shouldSuppressAdd = (text: string): boolean => {
+      const now = Date.now();
+      const guard = selfCopyGuardRef.current;
+      if (guard && now <= guard.expires && text === guard.text) {
+        selfCopyGuardRef.current = null; // consume
+        return true;
+      }
+      if (now <= suppressNextAddRef.current && text === lastClipboardTextRef.current) return true;
+      // If text already exists among current clips, skip (prevents duplicate + refresh churn)
+      if (clips.some(c => c.Content === text)) return true;
+      return false;
+    };
+
     if (bg && typeof bg.isActive === 'function') {
       // Fire and forget; if active, attach listener and bypass local interval
       bg.isActive?.().then((active: boolean) => {
         if (stopped) return;
         if (active && typeof bg.onNew === 'function') {
-          unsubscribe = bg.onNew(async (payload: { text: string }) => {
+            unsubscribe = bg.onNew(async (payload: { text: string }) => {
             // A new system clipboard text was detected; add then refresh the current view
             try {
-              const text = (payload?.text ?? '').toString();
+                const text = (payload?.text ?? '').toString();
               if (text) {
-                try { await clipService.addClip(text); } catch (e) { console.error('Background add failed', e); }
+                if (shouldSuppressAdd(text)) {
+                  lastClipboardTextRef.current = text; // sync
+                  return; // skip refresh
+                }
+                try {
+                    // Try to get appName from Electron APIs since payload does not provide it
+                    let appName: string | undefined;
+                    try { appName = await (window as any)?.electronAPI?.frontmostApp?.getName?.(); } catch {}
+                    if (!appName) { try { appName = await (window as any)?.electronAPI?.app?.getName?.(); } catch {} }
+                  await clipService.addClip(text, appName);
+                  if (appName && !allApps.includes(appName)) {
+                    setAllApps(prev => [...prev, appName!].filter(Boolean).sort());
+                  }
+                } catch (e) { console.error('Background add failed', e); }
                 await loadFirstPage();
               }
             } catch (e) {
@@ -183,10 +307,11 @@ export default function HomePage() {
       }).catch(() => {});
     }
 
-    let cancelled = false;
-    let lastText = "";
-    let ticking = false;
-    const primedRef = { current: false } as { current: boolean };
+  let cancelled = false;
+  let ticking = false;
+  // Use refs for last observed clipboard and primed state so external copy handler can sync
+  const lastTextRef = { current: lastClipboardTextRef.current };
+  const primedRef = { current: !!lastClipboardTextRef.current } as { current: boolean };
 
     const readClipboard = async (): Promise<string> => {
       // Try Electron first (synchronous API)
@@ -208,7 +333,7 @@ export default function HomePage() {
       return "";
     };
 
-    const tick = async () => {
+  const tick = async () => {
       if (cancelled) return;
       ticking = true;
       try {
@@ -216,23 +341,39 @@ export default function HomePage() {
         // Prime on first non-empty read to avoid posting pre-existing clipboard content at startup
         if (!primedRef.current) {
           if (current) {
-            lastText = current;
+            lastTextRef.current = current;
+            lastClipboardTextRef.current = current;
             primedRef.current = true;
           }
           return;
         }
-        if (current && current !== lastText) {
+        if (current && current !== lastTextRef.current) {
+          const nowTs = Date.now();
+          // If we've recently copied inside the app, suppress adding (even if OS normalizes whitespace)
+          if (nowTs <= suppressNextAddRef.current) {
+            lastTextRef.current = current;
+            lastClipboardTextRef.current = current;
+            return;
+          }
           // If this change was produced by our own copy button recently, skip adding
           const guard = selfCopyGuardRef.current;
           const now = Date.now();
           if (guard && now <= guard.expires && current === guard.text) {
-            lastText = current;
+            lastTextRef.current = current;
             selfCopyGuardRef.current = null; // consume guard
+            lastClipboardTextRef.current = current;
             return;
           }
-          lastText = current;
-          try {
-            await clipService.addClip(current);
+          lastTextRef.current = current;
+          lastClipboardTextRef.current = current;
+            try {
+              let appName: string | undefined;
+              try { appName = await (window as any)?.electronAPI?.frontmostApp?.getName?.(); } catch {}
+              if (!appName) { try { appName = await (window as any)?.electronAPI?.app?.getName?.(); } catch {} }
+              await clipService.addClip(current, appName);
+            if (appName && !allApps.includes(appName)) {
+              setAllApps(prev => [...prev, appName!].filter(Boolean).sort());
+            }
             await loadFirstPage();
           } catch (e) {
             console.error("Failed to add clip or refresh", e);
@@ -254,8 +395,12 @@ export default function HomePage() {
       } catch {}
       // Try to set lastText from clipboard; priming will also ensure we don't post pre-existing values
       try {
-        lastText = await readClipboard();
-        if (lastText) primedRef.current = true;
+        const initial = await readClipboard();
+        if (initial) {
+          lastTextRef.current = initial;
+          lastClipboardTextRef.current = initial;
+          primedRef.current = true;
+        }
       } catch {}
       interval = setInterval(() => {
         if (!ticking) void tick();
@@ -269,8 +414,7 @@ export default function HomePage() {
       if (unsubscribe) unsubscribe();
       stopped = true;
     };
-  }, [isFiltered, searchCSV, timeFrame]);
-
+  }, [isFiltered, searchCSV, timeFrame, clips]);
   // Infinite scroll: observe sentinel
   useEffect(() => {
     const node = sentinelRef.current;
@@ -330,25 +474,56 @@ export default function HomePage() {
         throw new Error("No clipboard API available");
       }
       // Guard against watcher re-posting our own copy for a short window (only after success)
-      selfCopyGuardRef.current = { text, expires: Date.now() + 2000 };
+  selfCopyGuardRef.current = { text, expires: Date.now() + 3000 }; // extend guard
+  lastClipboardTextRef.current = text;
+  suppressNextAddRef.current = Date.now() + 3200; // suppress polling add for 3.2s
     } catch (e) {
       // Non-fatal; could show a toast in the future
       console.error("Copy failed", e);
     }
   };
 
-  const handleDelete = async (id: number) => {
-    try {
-      await clipService.deleteClip(id);
-      setClips((prev) => prev.filter((c) => c.Id !== id));
-      if (isFiltered) {
-        setFilteredCount((c) => Math.max(0, c - 1));
-      } else {
-        setTotalCount((c) => Math.max(0, c - 1));
-      }
-    } catch (e) {
-      console.error("Delete failed", e);
+  const handleDelete = (id: number) => {
+    // Optimistically remove clip immediately
+    setClips(prev => {
+      const idx = prev.findIndex(c => c.Id === id);
+      if (idx === -1) return prev;
+      pendingDeletionRef.current[id] = { clip: prev[idx], index: idx };
+      const next = [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+      return next;
+    });
+    if (isFiltered) {
+      setFilteredCount(c => Math.max(0, c - 1));
+    } else {
+      setTotalCount(c => Math.max(0, c - 1));
     }
+    // Fire API call
+    (async () => {
+      try {
+        await clipService.deleteClip(id);
+        // Success: cleanup stored backup
+        delete pendingDeletionRef.current[id];
+      } catch (e) {
+        console.error("Delete failed", e);
+        // Restore counts
+        if (isFiltered) {
+          setFilteredCount(c => c + 1);
+        } else {
+          setTotalCount(c => c + 1);
+        }
+        // Restore clip in original position if still absent
+        setClips(prev => {
+          if (prev.some(c => c.Id === id)) return prev; // already restored externally
+          const backup = pendingDeletionRef.current[id];
+          if (!backup) return prev;
+          const arr = [...prev];
+          const insertAt = Math.min(backup.index, arr.length);
+            arr.splice(insertAt, 0, backup.clip);
+          return arr;
+        });
+        delete pendingDeletionRef.current[id];
+      }
+    })();
   };
 
   return (
@@ -376,20 +551,140 @@ export default function HomePage() {
             )}
             {displayCount} {isFiltered ? (displayCount === 1 ? "matching result" : "matching results") : (displayCount === 1 ? "item" : "items")}
           </div>
+          {/* Favorites toggle (icon star) */}
+          <button
+            type="button"
+            className={`icon-button fav-filter-btn${favoritesOnly ? ' active' : ''}`}
+            aria-pressed={favoritesOnly}
+            aria-label={favoritesOnly ? 'Show all clips' : 'Show only favorites'}
+            title={favoritesOnly ? 'Showing favorites (click to show all)' : 'Show only favorites'}
+            onClick={() => setFavoritesOnly(f => !f)}
+          >
+            <span
+              className="icon icon-star_filled"
+              style={{ background: favoritesOnly ? '#facc15' : '#4a4f58' }}
+              aria-hidden
+            />
+          </button>
+          {/* Tags dropdown */}
+          <div className="multi-select" ref={tagMenuRef}>
+            <span className="icon icon-tag" aria-hidden style={{ color: 'var(--muted)' }} />
+            <button
+              type="button"
+              className={`trigger${showTagMenu ? ' active' : ''}`}
+              onClick={() => setShowTagMenu(v => !v)}
+              aria-expanded={showTagMenu}
+              aria-haspopup="listbox"
+              title={`Filter by tags${selectedTags.length ? `: ${selectedTags.slice(0,5).join(', ')}${selectedTags.length>5?', …':''}` : ''}`}
+            >
+              Tags {selectedTags.length ? `(${selectedTags.length})` : ''}
+            </button>
+            {showTagMenu && (
+              <div className="multi-select-options open" role="listbox">
+                {allTags.length === 0 && <div style={{ fontSize: 11, color: 'var(--muted)' }}>No tags</div>}
+                {allTags.map(tag => {
+                  const active = selectedTags.includes(tag);
+                  return (
+                    <button key={tag} type="button" className={`pill${active ? ' active' : ''}`} onClick={() => handleMultiSelect(tag, 'tags')} aria-pressed={active}>{tag}</button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          {/* Apps dropdown */}
+          <div className="multi-select" ref={appMenuRef}>
+            <span className="icon icon-label" aria-hidden style={{ color: 'var(--muted)' }} />
+            <button
+              type="button"
+              className={`trigger${showAppMenu ? ' active' : ''}`}
+              onClick={() => setShowAppMenu(v => !v)}
+              aria-expanded={showAppMenu}
+              aria-haspopup="listbox"
+              title={`Filter by apps${selectedApps.length ? `: ${selectedApps.slice(0,5).join(', ')}${selectedApps.length>5?', …':''}` : ''}`}
+            >
+              Apps {selectedApps.length ? `(${selectedApps.length})` : ''}
+            </button>
+            {showAppMenu && (
+              <div className="multi-select-options open" role="listbox">
+                {allApps.length === 0 && <div style={{ fontSize: 11, color: 'var(--muted)' }}>No apps</div>}
+                {allApps.map(app => {
+                  const active = selectedApps.includes(app);
+                  return (
+                    <button key={app} type="button" className={`pill${active ? ' active' : ''}`} onClick={() => handleMultiSelect(app, 'apps')} aria-pressed={active}>{app}</button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           <div className="filter-select" role="group" aria-label="Filter by date range">
             <span className="icon icon-calendar" aria-hidden />
+            {/* Visually hidden native select kept for accessibility & existing tests */}
             <select
-              value={range}
-              onChange={(e) => setRange(e.target.value as Range)}
               aria-label="Date range"
+              value={range}
+              onChange={e => { setRange(e.target.value as typeof range); setShowTimeMenu(false); }}
+              style={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                padding: 0,
+                margin: -1,
+                overflow: 'hidden',
+                clip: 'rect(0 0 0 0)',
+                border: 0
+              }}
             >
               <option value="all">All time</option>
               <option value="24h">Past 24 hours</option>
               <option value="week">Past week</option>
               <option value="month">Past month</option>
-              <option value="3months">Past 3 months</option>
               <option value="year">Past year</option>
             </select>
+  <div className="single-select" ref={timeMenuRef}>
+              <button
+                type="button"
+	        className={`trigger${showTimeMenu ? ' active' : ''}`}
+                aria-haspopup="listbox"
+	        aria-expanded={showTimeMenu}
+                onClick={() => setShowTimeMenu(v => !v)}
+                title="Select time range"
+              >
+                {(() => {
+                  switch (range) {
+                    case '24h': return 'Past 24 hours';
+                    case 'week': return 'Past week';
+                    case 'month': return 'Past month';
+                    case '3months': return 'Past 3 months';
+                    case 'year': return 'Past year';
+                    default: return 'All time';
+                  }
+                })()}
+              </button>
+              {showTimeMenu && (
+                <div className={`single-select-options open`} role="listbox" aria-label="Date range">
+                  {([
+                    ['all','All time'],
+                    ['24h','Past 24 hours'],
+                    ['week','Past week'],
+                    ['month','Past month'],
+                    ['3months','Past 3 months'],
+                    ['year','Past year'],
+                  ] as [Range,string][]).map(([val,label]) => {
+                    const active = range === val;
+                    return (
+                      <button
+                        key={val}
+                        type="button"
+                        className={active ? 'active' : ''}
+                        aria-selected={active}
+                        role="option"
+                        onClick={() => { setRange(val); setShowTimeMenu(false); }}
+                      >{label}</button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
           <form
             className="search-bar"
@@ -427,7 +722,11 @@ export default function HomePage() {
       </div>
 
       <div className={`clips-container ${clips.length === 0 ? "is-empty" : ""}`}>
-        <ClipList clips={clips} onCopy={handleCopy} onDelete={handleDelete} isSearching={isFiltered} />
+  <ClipList clips={clips} onCopy={handleCopy} onDelete={handleDelete} onToggleFavorite={toggleFavoriteClip} isSearching={isFiltered} onTagAdded={async (tag) => {
+    if (tag && !allTags.includes(tag)) setAllTags(prev => [...prev, tag].sort());
+    // Debounced refresh from server to capture any concurrent changes
+    refreshTaxonomy();
+  }} />
         {/* sentinel for infinite scrolling */}
         <div ref={sentinelRef} className="infinite-sentinel" aria-hidden="true" style={{ height: 1 }} />
       </div>

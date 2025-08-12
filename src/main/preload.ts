@@ -6,6 +6,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		writeText: (text: string) => clipboard.writeText(text ?? ""),
 		readText: () => clipboard.readText(),
 	},
+	app: {
+		getName: () => ipcRenderer.invoke('app:name'),
+	},
+	frontmostApp: {
+		getName: () => ipcRenderer.invoke('app:frontmost'),
+	},
 	background: {
 		isActive: async (): Promise<boolean> => ipcRenderer.invoke('clipboard:isBackgroundActive'),
 		onNew: (cb: (payload: { text: string }) => void) => {

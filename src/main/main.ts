@@ -1,10 +1,33 @@
 import { app, BrowserWindow, ipcMain, clipboard } from "electron";
 import * as path from "path";
 import { setInterval as setNodeInterval } from "timers";
+import { execFile } from "child_process";
+import { promisify } from "util";
 
 let mainWindow: BrowserWindow | null = null;
 let bgInterval: NodeJS.Timeout | null = null;
 let lastClipboard: string = "";
+
+const execFileAsync = promisify(execFile);
+
+async function getFrontmostAppName(): Promise<string | undefined> {
+	// Currently implemented for macOS only; other platforms fall back to Electron app name.
+	if (process.platform !== 'darwin') return undefined;
+	try {
+		// AppleScript via System Events to get the name of the frontmost application process.
+		const script = "tell application \"System Events\" to get name of first application process whose frontmost is true";
+		const { stdout } = await execFileAsync('osascript', ['-e', script], { timeout: 1000 });
+		const name = stdout.trim();
+		if (!name) return undefined;
+		// If it's our own app (Electron app name) just return our configured name
+		if (name === app.getName()) return name;
+		// If macOS reports generic 'Electron' (common in dev), and it's our focused window, map to our app name; otherwise leave as 'Electron'.
+		if (name === 'Electron' && mainWindow?.isFocused()) return app.getName();
+		return name;
+	} catch {
+		return undefined;
+	}
+}
 
 function createWindow() {
 	mainWindow = new BrowserWindow({
@@ -58,14 +81,20 @@ app.whenReady().then(() => {
 			const text = clipboard.readText() || "";
 			if (!text || text === lastClipboard) return;
 			lastClipboard = text;
-				// Notify renderer; renderer will perform API call and update UI
-			mainWindow?.webContents.send('clipboard:new', { text });
+				// Determine frontmost app name (best-effort) and notify renderer; renderer will perform API call and update UI
+			let appName: string | undefined;
+			try { appName = await getFrontmostAppName(); } catch {}
+			mainWindow?.webContents.send('clipboard:new', { text, appName });
 		} catch {}
 	};
-	bgInterval = setNodeInterval(tick, 1500);
+	bgInterval = setNodeInterval(tick, 500); // 0.5s polling
 
 	// When renderer asks, report that background polling is active so it can disable its own poller
 	ipcMain.handle('clipboard:isBackgroundActive', async () => true);
+	ipcMain.handle('app:name', async () => app.getName()); // Electron app name
+	ipcMain.handle('app:frontmost', async () => {
+		try { return await getFrontmostAppName(); } catch { return undefined; }
+	});
 
 	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();
