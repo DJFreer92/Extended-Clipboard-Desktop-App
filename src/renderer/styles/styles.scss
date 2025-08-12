@@ -1,3 +1,75 @@
+/* Spinner icon and animation */
+.icon-spinner {
+	-webkit-mask: url('../../assets/icons/progress_activity_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain;
+	mask: url('../../assets/icons/progress_activity_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain;
+	color: var(--brand);
+}
+.spinning > .icon,
+.icon-spinner,
+.spinner-inline {
+	animation: spin 1s linear infinite;
+}
+@keyframes spin {
+	100% { transform: rotate(360deg); }
+}
+
+/* Encrypted lock icon for header */
+.icon-lock {
+	-webkit-mask: url('../../assets/icons/lock_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain;
+	mask: url('../../assets/icons/lock_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain;
+}
+.encrypted-lock {
+	color: var(--brand);
+	width: 20px;
+	height: 20px;
+	margin-left: 8px;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+/* Generic tooltip wrapper used for encrypted lock */
+.tooltip {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+}
+.tooltip-trigger { outline: none; }
+.tooltip-bubble {
+	position: absolute;
+	top: 100%;
+	left: 0; /* align under icon, expand to the right */
+	transform: translate(8px, 8px);
+	background: #0f1424;
+	color: var(--text);
+	border: 1px solid var(--border);
+	padding: 8px 10px;
+	border-radius: 8px;
+	box-shadow: var(--shadow);
+	font-size: 12px;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.12s ease, transform 0.12s ease;
+	z-index: 20;
+}
+.tooltip-bubble::after {
+	content: "";
+	position: absolute;
+	top: -6px;
+	left: 16px; /* arrow near left edge so it appears to open to the right */
+	border-width: 6px;
+	border-style: solid;
+	border-color: transparent transparent #0f1424 transparent;
+}
+.tooltip:hover .tooltip-bubble,
+.tooltip:focus-within .tooltip-bubble {
+	opacity: 1;
+	transform: translate(8px, 4px);
+	pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+	.tooltip-bubble { transition: none; }
+}
 :root {
 	--bg: #0f1115;
 	--panel: #151923;
@@ -7,7 +79,8 @@
 	--brand: #6ca2ff;
 	--brand-700: #4a82e8;
 	--success: #6ee7b7;
-	--danger: #f87171;
+		--danger: #f87171;
+		--danger-dark: #b91c1c;
 	--ring: rgba(108, 162, 255, 0.45);
 	--border: rgba(255, 255, 255, 0.08);
 	--shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
@@ -81,6 +154,10 @@ body {
 .search-count {
 	color: var(--muted);
 	font-size: 12px;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 18px; /* reserve height so text doesn't shift when spinner appears */
 }
 
 .search-bar {
@@ -197,20 +274,42 @@ body {
 	margin: 0;
 	display: grid;
 	gap: 10px;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	/* Responsive columns: min 260px, fill available width */
 }
 
 .clip-item {
 	display: grid;
-	grid-template-columns: 1fr auto auto; /* text | copy | delete */
+	grid-template-columns: 1fr auto auto;
 	align-items: center;
 	gap: 10px;
-	padding: 10px 10px; /* shorter height */
+	padding: 10px 10px;
 	background: linear-gradient(180deg, var(--panel), var(--panel-2));
 	border: 1px solid var(--border);
 	border-radius: 12px;
 	box-shadow: var(--shadow);
 	transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 	cursor: pointer;
+	min-width: 0;
+	position: relative;
+}
+
+.clip-item[data-time]:hover::after {
+	content: attr(data-time);
+	position: absolute;
+	right: 10px;
+	top: -28px;
+	background: #232b3a;
+	color: var(--text);
+	font-size: 12px;
+	padding: 3px 10px;
+	border-radius: 8px;
+	box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+	white-space: nowrap;
+	pointer-events: none;
+	z-index: 10;
+	opacity: 1;
+	transition: opacity 0.15s;
 }
 
 .clip-item:hover {
@@ -326,11 +425,20 @@ body {
 	color: var(--text);
 }
 
-.search-left { display: inline-flex; }
+.search-left { display: inline-flex; align-items: center; }
 .search-right { display: inline-flex; gap: 10px; align-items: center; justify-content: flex-end; }
 
 .refresh-btn { color: var(--muted); }
 .refresh-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+
+/* Inline fetch error indicator (shares danger color with delete buttons) */
+.fetch-error {
+	margin-left: 12px;
+	color: var(--danger);
+	font-size: 13px;
+	font-weight: 600;
+	white-space: nowrap;
+}
 
 .clips-container.is-empty { padding-top: 16px; }
 
@@ -347,29 +455,17 @@ body {
 	padding: 12px 0;
 }
 
-.danger-button {
-	appearance: none;
-	border: 1px solid rgba(248, 113, 113, 0.4);
-	color: #0d1220;
-	background: rgba(248, 113, 113, 0.15);
-	border-radius: 10px;
-	padding: 10px 12px;
+/* Delete-all button reuses delete icon button styling but allows label + icon */
+.delete-all-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 14px; /* slightly larger for text */
 	font-weight: 600;
-	cursor: pointer;
-	transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease, color 0.12s ease;
+	min-width: unset; /* allow natural width */
 }
 
-.danger-button:hover {
-	background: var(--danger);
-	color: #0d1220;
-	border-color: transparent;
-	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.25);
-}
-
-.danger-button:focus-visible {
-	outline: none;
-	box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.35);
-}
+/* Hover style already covered by .delete-btn:hover */
 
 /* Date separator styles */
 .date-separator {
@@ -380,6 +476,14 @@ body {
 	font-size: 11.5px;
 	letter-spacing: 0.2px;
 	text-transform: none;
+	grid-column: 1 / -1;
+}
+.clip-item-empty {
+	pointer-events: none;
+	background: none !important;
+	border: none !important;
+	box-shadow: none !important;
+	visibility: hidden;
 }
 
 .date-separator.is-collapsed {

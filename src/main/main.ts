@@ -1,7 +1,10 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, clipboard } from "electron";
 import * as path from "path";
+import { setInterval as setNodeInterval } from "timers";
 
 let mainWindow: BrowserWindow | null = null;
+let bgInterval: NodeJS.Timeout | null = null;
+let lastClipboard: string = "";
 
 function createWindow() {
 	mainWindow = new BrowserWindow({
@@ -48,6 +51,22 @@ function createWindow() {
 
 app.whenReady().then(() => {
 	createWindow();
+	try { lastClipboard = clipboard.readText() || ""; } catch {}
+		// Start polling system clipboard even when the app is unfocused
+	const tick = async () => {
+		try {
+			const text = clipboard.readText() || "";
+			if (!text || text === lastClipboard) return;
+			lastClipboard = text;
+				// Notify renderer; renderer will perform API call and update UI
+			mainWindow?.webContents.send('clipboard:new', { text });
+		} catch {}
+	};
+	bgInterval = setNodeInterval(tick, 1500);
+
+	// When renderer asks, report that background polling is active so it can disable its own poller
+	ipcMain.handle('clipboard:isBackgroundActive', async () => true);
+
 	app.on("activate", () => {
 		if (BrowserWindow.getAllWindows().length === 0) createWindow();
 	});
@@ -56,3 +75,8 @@ app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") app.quit();
 });
 // 'activate' is handled after whenReady
+
+app.on('before-quit', () => {
+	if (bgInterval) clearInterval(bgInterval);
+	bgInterval = null;
+});

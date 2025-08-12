@@ -24,13 +24,14 @@ export default function SettingsPage() {
       <h2>Settings</h2>
       <button
         type="button"
-        className="danger-button"
+        className="icon-button delete-btn delete-all-btn"
         aria-label="Delete all clips"
         title="Delete all clips"
         disabled={busy}
         onClick={() => { void onDeleteAll(); }}
       >
-        {busy ? "Deleting…" : "Delete All Clips"}
+        <span className="icon icon-delete" aria-hidden="true" />
+        <span>{busy ? "Deleting…" : "Delete All Clips"}</span>
       </button>
     </section>
   );

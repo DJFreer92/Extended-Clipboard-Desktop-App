@@ -23,4 +23,11 @@ describe('clip model mapping', () => {
     expect(dto.content).toBe('yo');
     expect(dto.timestamp).toMatch(/Z$/);
   });
+
+  it('fromApi handles empty and invalid timestamp strings', () => {
+    const empty = fromApi({ id: 1, content: 'x', timestamp: '' as any });
+    const invalid = fromApi({ id: 1, content: 'x', timestamp: 'not-a-date' as any });
+    expect(empty.Timestamp).toBe(0);
+    expect(invalid.Timestamp).toBe(0);
+  });
 });

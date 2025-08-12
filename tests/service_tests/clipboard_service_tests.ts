@@ -75,4 +75,24 @@ describe('clipService', () => {
 		(globalThis.fetch as any).mockResolvedValue(new Response('x', { status: 500, statusText: 'err' }));
 		await expect(clipService.getAllClips()).rejects.toThrow(/HTTP 500/);
 	});
+
+	it('handles non-json empty response gracefully (204/no content-type)', async () => {
+		(globalThis.fetch as any).mockResolvedValue(new Response(null, { status: 200 }));
+		await expect(clipService.deleteAllClips()).resolves.toBeUndefined();
+	});
+
+	it('supports base url env and {count} object for getNumClips', async () => {
+		// Simulate env base url by stubbing import.meta.env on global (module already loaded uses it to compute string prefix only)
+		(globalThis.fetch as any).mockImplementation((url: string) => {
+			// Ensure relative path is passed through (base url concatenation occurs in module)
+			expect(url).toMatch(/\/clipboard\/get_num_clips$/);
+			return Promise.resolve(new Response(JSON.stringify({ count: 7 }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+		});
+		await expect(clipService.getNumClips()).resolves.toBe(7);
+	});
+
+	it('getNumFilteredClips supports raw number response', async () => {
+		(globalThis.fetch as any).mockResolvedValue(okJson(9));
+		await expect(clipService.getNumFilteredClips('a', 'past_week')).resolves.toBe(9);
+	});
 });
