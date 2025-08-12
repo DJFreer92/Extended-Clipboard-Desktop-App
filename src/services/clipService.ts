@@ -5,11 +5,16 @@ export interface ApiClip {
   id: number;
   content: string;
   timestamp: string; // ISO 8601
+  from_app_name?: string | null;
+  tags?: string[]; // server returns list of tag names
 }
 
-export interface ApiClips {
-  clips: ApiClip[];
-}
+export interface ApiClips { clips: ApiClip[]; }
+
+export interface ApiTag { id: number; name: string; }
+export interface ApiTags { tags: ApiTag[]; }
+export interface ApiFavoriteClipIDs { clip_ids: number[]; }
+export interface ApiFromApps { apps: string[]; }
 
 // In development, we rely on Vite dev proxy and use relative URLs to avoid CORS.
 // In production, VITE_API_BASE_URL can be set to the absolute API origin.
@@ -49,17 +54,15 @@ export const clipService = {
   },
 
   // Add a new clip by content only; server assigns id and timestamp
-  async addClip(content: string): Promise<void> {
-    // Some server schemas require full object; provide placeholder id and current timestamp
+  async addClip(content: string, fromAppName?: string): Promise<void> {
     const payload = {
       id: 0,
       content,
       timestamp: new Date().toISOString(),
+      from_app_name: fromAppName,
     };
-    await http<void>(`/clipboard/add_clip`, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    const qp = fromAppName ? `?from_app_name=${encodeURIComponent(fromAppName)}` : '';
+    await http<void>(`/clipboard/add_clip${qp}`, { method: 'POST', body: JSON.stringify(payload) });
   },
 
   async deleteClip(id: number): Promise<void> {
@@ -72,13 +75,16 @@ export const clipService = {
   },
 
   // New pagination and filter endpoints
+  // Server parameter name is `before_id` but represents a lower bound; returns clips with id > before_id
   async getAllClipsAfterId(beforeId: number): Promise<ApiClip[]> {
-    const data = await http<ApiClips>(`/clipboard/get_all_clips_after_id?after_id=${encodeURIComponent(beforeId)}`);
+    const data = await http<ApiClips>(`/clipboard/get_all_clips_after_id?before_id=${encodeURIComponent(beforeId)}`);
     return data.clips ?? [];
   },
 
-  async getNClipsBeforeId(n: number, beforeId: number): Promise<ApiClip[]> {
-    const data = await http<ApiClips>(`/clipboard/get_n_clips_before_id?n=${encodeURIComponent(n)}&before_id=${encodeURIComponent(beforeId)}`);
+  async getNClipsBeforeId(n: number | null, beforeId: number): Promise<ApiClip[]> {
+    const params = new URLSearchParams({ before_id: String(beforeId) });
+    if (n != null) params.set('n', String(n));
+    const data = await http<ApiClips>(`/clipboard/get_n_clips_before_id?${params.toString()}`);
     return data.clips ?? [];
   },
 
@@ -90,36 +96,105 @@ export const clipService = {
     return 0;
   },
 
-  async filterAllClips(searchCSV: string, timeFrame: string): Promise<ApiClip[]> {
-    const params = new URLSearchParams({ search: searchCSV, time_frame: timeFrame });
+  // Filtering endpoints now accept selected_tags[] and favorites_only and optional n/null semantics
+  async filterAllClips(search: string, timeFrame: string, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
+    const params = new URLSearchParams({ search, time_frame: timeFrame });
+    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
+    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_all_clips?${params.toString()}`);
     return data.clips ?? [];
   },
 
-  async filterNClips(searchCSV: string, timeFrame: string, n: number): Promise<ApiClip[]> {
-    const params = new URLSearchParams({ search: searchCSV, time_frame: timeFrame, n: String(n) });
+  async filterNClips(search: string, timeFrame: string, n: number | null, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
+    const params = new URLSearchParams({ search, time_frame: timeFrame });
+    if (n != null) params.set('n', String(n));
+    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
+    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_n_clips?${params.toString()}`);
     return data.clips ?? [];
   },
 
-  async filterAllClipsAfterId(searchCSV: string, timeFrame: string, afterId: number): Promise<ApiClip[]> {
-    const params = new URLSearchParams({ search: searchCSV, time_frame: timeFrame, after_id: String(afterId) });
+  async filterAllClipsAfterId(search: string, timeFrame: string, afterId: number, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
+    const params = new URLSearchParams({ search, time_frame: timeFrame, after_id: String(afterId) });
+    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
+    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_all_clips_after_id?${params.toString()}`);
     return data.clips ?? [];
   },
 
-  async filterNClipsBeforeId(searchCSV: string, timeFrame: string, n: number, beforeId: number): Promise<ApiClip[]> {
-    const params = new URLSearchParams({ search: searchCSV, time_frame: timeFrame, n: String(n), before_id: String(beforeId) });
+  async filterNClipsBeforeId(search: string, timeFrame: string, n: number | null, beforeId: number, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
+    const params = new URLSearchParams({ search, time_frame: timeFrame, before_id: String(beforeId) });
+    if (n != null) params.set('n', String(n));
+    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
+    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_n_clips_before_id?${params.toString()}`);
     return data.clips ?? [];
   },
 
-  async getNumFilteredClips(searchCSV: string, timeFrame: string): Promise<number> {
-    const params = new URLSearchParams({ search: searchCSV, time_frame: timeFrame });
+  async getNumFilteredClips(search: string, timeFrame: string, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<number> {
+    const params = new URLSearchParams({ search, time_frame: timeFrame });
+    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
+    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (favoritesOnly) params.set('favorites_only', 'true');
     const res = await http<any>(`/clipboard/get_num_filtered_clips?${params.toString()}`);
     if (typeof res === 'number') return res as number;
     if (res && typeof res.count === 'number') return res.count as number;
     return 0;
+  },
+
+  // Tag management
+  async addClipTag(clipId: number, tagName: string): Promise<void> {
+    await http<void>(`/clipboard/add_clip_tag?clip_id=${encodeURIComponent(clipId)}&tag_name=${encodeURIComponent(tagName)}`, { method: 'POST' });
+  },
+  async removeClipTag(clipId: number, tagId: number): Promise<void> {
+    await http<void>(`/clipboard/remove_clip_tag?clip_id=${encodeURIComponent(clipId)}&tag_id=${encodeURIComponent(tagId)}`, { method: 'POST' });
+  },
+  async getAllTags(): Promise<ApiTag[]> {
+    const data = await http<ApiTags>(`/clipboard/get_all_tags`);
+    return data.tags ?? [];
+  },
+  async getNumClipsPerTag(tagId: number): Promise<number> {
+    const res = await http<any>(`/clipboard/get_num_clips_per_tag?tag_id=${encodeURIComponent(tagId)}`);
+    if (typeof res === 'number') return res;
+    if (res && typeof res.count === 'number') return res.count;
+    return 0;
+  },
+
+  // Favorites management
+  async addFavorite(clipId: number): Promise<void> {
+    await http<void>(`/clipboard/add_favorite?clip_id=${encodeURIComponent(clipId)}`, { method: 'POST' });
+  },
+  async removeFavorite(clipId: number): Promise<void> {
+    await http<void>(`/clipboard/remove_favorite?clip_id=${encodeURIComponent(clipId)}`, { method: 'POST' });
+  },
+  async getAllFavorites(): Promise<number[]> {
+    const data = await http<ApiFavoriteClipIDs>(`/clipboard/get_all_favorites`);
+    return data.clip_ids ?? [];
+  },
+  async getNumFavorites(): Promise<number> {
+    const res = await http<any>(`/clipboard/get_num_favorites`);
+    if (typeof res === 'number') return res;
+    if (res && typeof res.count === 'number') return res.count;
+    return 0;
+  },
+
+  // Applications list (distinct from_app_name values)
+  async getAllFromApps(): Promise<string[]> {
+    try {
+      const data = await http<ApiFromApps>(`/clipboard/get_all_from_apps`);
+      // Support either { apps: [] } or { from_apps: [] } or raw array fallback
+      if (Array.isArray((data as any))) return (data as any) as string[];
+      if (data && Array.isArray((data as any).apps)) return (data as any).apps as string[];
+      if (data && Array.isArray((data as any).from_apps)) return (data as any).from_apps as string[];
+      return [];
+    } catch (e) {
+      console.error('Failed to fetch apps list', e);
+      return [];
+    }
   },
 };
 

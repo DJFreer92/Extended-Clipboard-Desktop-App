@@ -4,7 +4,7 @@ import ClipList from '../../src/renderer/components/clipList';
 import type { ClipModel } from '../../src/models/clip';
 
 function mkClip(id: number, content: string, ts: number): ClipModel {
-  return { Id: id, Content: content, Timestamp: ts };
+  return { Id: id, Content: content, Timestamp: ts, FromAppName: '', Tags: [] };
 }
 
 describe('ClipList', () => {
@@ -38,7 +38,8 @@ describe('ClipList', () => {
     const onCopy = vi.fn();
     const onDelete = vi.fn();
   const view = render(<ClipList clips={clips} onCopy={onCopy} onDelete={onDelete} />);
-  fireEvent.click(within(view.container).getAllByTitle(/Copy to clipboard/i)[0]);
+  // Click the list item (title "Click to copy") to copy
+  fireEvent.click(within(view.container).getAllByTitle(/Click to copy/i)[0]);
     expect(onCopy).toHaveBeenCalled();
   fireEvent.click(within(view.container).getAllByTitle(/Delete clip/i)[0]);
     expect(onDelete).toHaveBeenCalledWith(1);
@@ -49,12 +50,13 @@ describe('ClipList', () => {
     const clips = [mkClip(1, 'A', base)];
   const view = render(<ClipList clips={clips} onCopy={() => {}} onDelete={() => {}} />);
   const firstClip = within(view.container).getByText('A').closest('li') as HTMLElement;
-  fireEvent.click(firstClip);
+  // Open via expand button (list item click copies, not opens modal)
+  fireEvent.click(within(firstClip).getByTitle(/Expand clip/i));
   expect(!!(await within(view.container).findByRole('dialog'))).toBe(true);
   fireEvent.click(within(view.container).getByLabelText(/Close/i));
   expect(within(view.container).queryByRole('dialog')).toBeNull();
   // open again and click overlay
-  fireEvent.click(firstClip);
+  fireEvent.click(within(firstClip).getByTitle(/Expand clip/i));
   const dlg = await within(view.container).findByRole('dialog');
     fireEvent.click(dlg);
   expect(within(view.container).queryByRole('dialog')).toBeNull();

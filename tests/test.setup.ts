@@ -8,6 +8,12 @@ Object.defineProperty(window, 'electronAPI', {
       writeText: vi.fn(),
       readText: vi.fn().mockReturnValue(''),
     },
+    frontmostApp: {
+      getName: vi.fn().mockResolvedValue('TestApp'),
+    },
+    app: {
+      getName: vi.fn().mockResolvedValue('clipboard-ui'),
+    },
   },
   writable: true,
 });

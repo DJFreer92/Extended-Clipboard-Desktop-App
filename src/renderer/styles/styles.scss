@@ -278,11 +278,12 @@ body {
 	/* Responsive columns: min 350px, fill available width */
 }
 
+
 .clip-item {
 	display: grid;
-	grid-template-columns: 1fr auto auto;
+	grid-template-columns: 32px 1fr auto; /* reduced leading column width */
 	align-items: center;
-	gap: 10px;
+	gap: 6px; /* reduced gap between favorite button and content */
 	padding: 10px 10px;
 	background: linear-gradient(180deg, var(--panel), var(--panel-2));
 	border: 1px solid var(--border);
@@ -348,9 +349,91 @@ body {
 }
 
 /* Hide item actions until hover */
-.clip-item .icon-button { opacity: 0; pointer-events: none; transition: opacity 0.12s ease, background 0.12s ease, border-color 0.12s ease; }
-.clip-item:hover .icon-button { opacity: 1; pointer-events: auto; }
-.clip-item:focus-within .icon-button, .clip-item .icon-button:focus-visible { opacity: 1; pointer-events: auto; }
+/* Hide item actions until hover (copy/delete) */
+/* Icon buttons inside item (favorite still appears on hover; others are overlays) */
+.clip-item .icon-button { transition: opacity 0.12s ease, background 0.12s ease, border-color 0.12s ease; }
+.clip-item .floating-delete-btn, .clip-item .expand-btn { opacity: 0; }
+/* On row hover, reveal with baseline (match badge-add pattern) */
+.clip-item:hover .floating-delete-btn, .clip-item:hover .expand-btn { opacity: .85; }
+/* Direct hover or keyboard focus: full opacity */
+.floating-delete-btn:hover, .floating-delete-btn:focus-visible,
+.expand-btn:hover, .expand-btn:focus-visible { opacity: 1; }
+/* Expand button (top-right) */
+/* Expand button (top-right) - icon only, blue, partially outside border */
+.expand-btn { position: absolute; top: -14px; right: -14px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--brand); transition: opacity .12s ease, color .12s ease; }
+.expand-btn .icon { width: 23px; height: 23px; }
+.expand-btn:hover { color: #8cbcff; }
+/* Floating delete button (bottom-right) - enlarged icon, partially outside */
+.floating-delete-btn { position: absolute; bottom: -14px; right: -14px; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; color: var(--danger); transition: opacity .12s ease, color .12s ease; }
+.floating-delete-btn .icon { width: 23px; height: 23px; }
+.floating-delete-btn:hover { color: var(--danger-dark); }
+/* Adjust padding so overlay buttons have room */
+.clip-item { padding-top: 14px; padding-bottom: 14px; }
+
+/* Left meta area: favorite star + badges */
+/* Right side meta (apps + tags) placed inline after actions */
+.clip-right-meta { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Badges */
+.badge { font-size: 10px; line-height: 1; padding: 4px 6px; border-radius: 999px; border: 1px solid currentColor; background: transparent; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 600; opacity: 0.85; }
+.badge-app { color: #39d98a; }
+.badge-tag { color: #5aa9ff; }
+.badge-app:hover, .badge-tag:hover, .badge-add:hover { opacity: 1; }
+/* Copied indicator */
+.copied-indicator { color: #39d98a; font-size: 14px; font-weight: 600; margin-right: 6px; display: inline-block; }
+.copied-indicator.shaking { animation: copied-shake 480ms cubic-bezier(.36,.07,.19,.97); transform-origin: 50% 60%; }
+@keyframes copied-shake {
+	0% { transform: rotate(0deg); }
+	18% { transform: rotate(-8deg); }
+	36% { transform: rotate(6deg); }
+	54% { transform: rotate(-5deg); }
+	72% { transform: rotate(4deg); }
+	90% { transform: rotate(-2deg); }
+	100% { transform: rotate(0deg); }
+}
+
+/* Removable tag styling: overlay remove button without altering intrinsic tag width */
+.tag-removable { position: relative; overflow: visible; }
+/* Button initially hidden and non-interactive */
+.tag-remove-btn { position: absolute; top: -6px; left: -6px; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; background: transparent; border: 1px solid rgba(248,113,113,0.65); border-radius: 50%; cursor: pointer; opacity: 0; padding: 0; pointer-events: none; transition: opacity .12s ease, background .12s ease, border-color .12s ease, color .12s ease; z-index: 2; color: var(--danger); }
+/* Slight inset mask size + higher default opacity */
+.tag-remove-btn .icon { width: 11px; height: 11px; opacity: .94; }
+.tag-remove-btn:hover .icon { opacity: 1; }
+/* Show on tag hover or row hover */
+.tag-removable:hover .tag-remove-btn, .tag-remove-btn:focus-visible { opacity: 1; pointer-events: auto; }
+.tag-remove-btn:hover { background: rgba(248,113,113,0.08); border-color: rgba(248,113,113,0.9); }
+.tag-remove-btn:active { transform: translateY(0.5px); }
+
+
+/* Favorite star button */
+.favorite-btn { appearance: none; border: none; background: none; padding: 3px; width: 30px; height: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.12s ease, background 0.12s ease; }
+/* Baseline fade-in when row hovered (unless active -> full opacity) */
+.clip-item:hover .favorite-btn:not(.active) { opacity: .85; }
+/* Hover/focus or active state -> full opacity */
+.favorite-btn:hover, .favorite-btn:focus-visible, .favorite-btn.active { opacity: 1; }
+.favorite-btn .icon { width: 26px; height: 26px; background: #4a4f58; transition: background 0.12s ease, opacity 0.12s ease; }
+.favorite-btn.active .icon { background: #facc15; }
+.favorite-btn:not(.active):hover .icon { background: #5b636d; }
+/* Add tag badge & input */
+.badge-add { opacity: 0; transition: opacity .12s ease, background 0.12s ease, border-color 0.12s ease; display: inline-flex; align-items: center; gap: 0; cursor: pointer; padding: 4px 9px; /* widened from 6px to 9px for larger click target */ min-width: 28px; }
+/* When row hovered (or always flag), show at base badge opacity (0.85); direct hover bumps to 1 */
+.clip-item:hover .badge-add { opacity: 0.85; }
+.badge-add.always { opacity: 0.85; }
+.badge-add:hover { opacity: 1; }
+.clip-item:hover .badge-add:hover { opacity: 1; }
+.badge-add .icon { width: 10px; height: 10px; }
+.badge-tag-input { background: #1d2636 !important; color: var(--text) !important; min-width: 70px; }
+.badge-tag-input:focus { outline: none; border-color: var(--brand); }
+/* Modal layout adjustments for pinned actions */
+.modal-body.with-actions { display: flex; gap: 12px; padding: 12px; max-height: calc(min(80vh, 800px) - 48px); }
+.modal-actions { display: flex; flex-direction: column; gap: 8px; position: sticky; top: 8px; align-self: flex-start; }
+.modal-actions.right { margin-left: auto; }
+.modal-content { flex: 1 1 auto; overflow: auto; padding-right: 4px; white-space: pre-wrap; word-wrap: break-word; }
+/* Add icon mapping */
+.icon-add { -webkit-mask: url('../../assets/icons/add_24dp_E8EAED_FILL0_wght700_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/add_24dp_E8EAED_FILL0_wght700_GRAD0_opsz24.svg') no-repeat center/contain; }
+
+/* (Removed duplicate .badge-add block that previously forced opacity:1 on row hover) */
+
 
 /* Base icon as CSS mask so it inherits currentColor */
 .icon { display: inline-block; width: 18px; height: 18px; background: currentColor; flex-shrink: 0; }
@@ -365,6 +448,13 @@ body {
 .icon-chevron { -webkit-mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
 .icon-refresh { -webkit-mask: url('../../assets/icons/refresh_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/refresh_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
 .icon-home { -webkit-mask: url('../../assets/icons/home_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/home_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
+.icon-star_outline { -webkit-mask: url('../../assets/icons/star_24dp_E8EAED_FILL0_wght100_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/star_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
+.icon-star_filled { -webkit-mask: url('../../assets/icons/star_24dp_E8EAED_FILL1_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/star_24dp_E8EAED_FILL1_wght200_GRAD0_opsz24.svg') no-repeat center/contain; }
+/* Tag & Label icons */
+.icon-tag { -webkit-mask: url('../../assets/icons/tag_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/tag_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
+.icon-label { -webkit-mask: url('../../assets/icons/label_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/label_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
+.icon-remove { -webkit-mask: url('../../assets/icons/close_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/close_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; background: currentColor; }
+.icon-expand { -webkit-mask: url('../../assets/icons/expand_content_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; mask: url('../../assets/icons/expand_content_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain; }
 
 /* Icons default to 18x18; copy/delete use the same size for consistency */
 /* (no per-button overrides) */
@@ -392,6 +482,13 @@ body {
 .delete-btn {
 	color: var(--danger);
 }
+
+/* Favorites filter button sizing to match search bar height */
+.fav-filter-btn { width: 36px; height: 36px; padding: 0; min-width: 36px; min-height: 36px; display: inline-flex; align-items: center; justify-content: center; }
+.fav-filter-btn .icon { width: 24px; height: 24px; }
+/* Refresh button sizing */
+.refresh-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.refresh-btn .icon { width: 20px; height: 20px; }
 
 /* Remove manual vertical nudges to keep icons aligned by default */
 
@@ -426,7 +523,39 @@ body {
 }
 
 .search-left { display: inline-flex; align-items: center; }
-.search-right { display: inline-flex; gap: 10px; align-items: center; justify-content: flex-end; }
+.search-right { display: inline-flex; gap: 10px; align-items: center; justify-content: flex-end; flex: 1 1 auto; }
+.search-count { margin-left: auto; text-align: right; }
+
+/* Multi-select pill list */
+.multi-select { display: flex; align-items: center; gap: 6px; }
+/* Dropdown style for multi-selects */
+.multi-select { position: relative; }
+.multi-select button.trigger { background: #121828; border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 6px 10px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.multi-select button.trigger:after { content: ""; width: 12px; height: 12px; background: currentColor; -webkit-mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') center/contain no-repeat; mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') center/contain no-repeat; opacity: 0.7; }
+.multi-select button.trigger.active { border-color: var(--brand); }
+.multi-select-options { position: absolute; top: calc(100% + 4px); left: 0; background: #121828; border: 1px solid var(--border); padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 160px; max-height: 260px; overflow: auto; box-shadow: var(--shadow); z-index: 30; opacity: 0; transform: translateY(4px) scale(.98); pointer-events: none; transition: opacity .14s ease, transform .14s ease; }
+.multi-select > .multi-select-options { /* shift panel so its left border aligns with trigger button, skipping leading icon (18px) + gap (6px) */
+	left: calc(18px + 6px);
+}
+.multi-select-options.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+
+/* Single-select (time frame) dropdown styles / animation */
+.single-select { position: relative; display: flex; align-items: center; }
+.single-select button.trigger { background: #121828; border: 1px solid var(--border); border-radius: 10px; color: var(--text); padding: 6px 10px; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.single-select button.trigger:after { content: ""; width: 12px; height: 12px; background: currentColor; -webkit-mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') center/contain no-repeat; mask: url('../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') center/contain no-repeat; opacity: .7; }
+.single-select button.trigger.active { border-color: var(--brand); }
+.single-select-options { position: absolute; top: calc(100% + 4px); left: 0; background: #121828; border: 1px solid var(--border); padding: 8px; border-radius: 12px; display: flex; flex-direction: column; gap: 4px; min-width: 160px; max-height: 260px; overflow: auto; box-shadow: var(--shadow); z-index: 30; opacity: 0; transform: translateY(4px) scale(.98); pointer-events: none; transition: opacity .14s ease, transform .14s ease; }
+.single-select-options.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }
+.single-select-options button { background: #121828; border: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 1; padding: 6px 8px; border-radius: 8px; cursor: pointer; text-align: left; }
+.single-select-options button:hover { border-color: rgba(108,162,255,0.4); color: var(--text); }
+.single-select-options button.active { background: var(--brand); color: #0d1220; border-color: var(--brand); }
+.pill {
+	background: #121828; border: 1px solid var(--border); color: var(--muted); font-size: 11px; line-height: 1; padding: 4px 8px; border-radius: 999px; cursor: pointer; transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.pill:hover { border-color: rgba(108,162,255,0.4); color: var(--text); }
+.pill.active { background: var(--brand); color: #0d1220; border-color: var(--brand); }
+
+.favorite-toggle input { accent-color: #facc15; }
 
 .refresh-btn { color: var(--muted); }
 .refresh-btn:hover { color: var(--text); background: rgba(255,255,255,0.06); }
@@ -541,9 +670,13 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 10px 12px;
+	/* Symmetric padding */
+	padding: 14px 16px; /* equal left/right */
+	min-height: 0; /* allow natural height based on content */
 	border-bottom: 1px solid var(--border);
 }
+
+.modal-fav-btn { margin-left: 2px; margin-right: 8px !important; }
 
 .modal-title { margin: 0; font-size: 14px; color: var(--text); }
 
@@ -554,4 +687,9 @@ body {
 	overflow: auto;
 	white-space: pre-wrap;
 	word-wrap: break-word;
+	min-height: 160px; /* ensure room for stacked copy/delete buttons */
 }
+
+/* Ellipsis badge (expand hidden tags) */
+.badge-ellipsis { cursor: pointer; background: rgba(255,255,255,0.06); }
+.badge-ellipsis:hover { background: rgba(255,255,255,0.12); }

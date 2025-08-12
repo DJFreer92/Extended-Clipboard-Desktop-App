@@ -52,7 +52,7 @@ describe('HomePage', () => {
     const view = render(<HomePage />);
     await act(async () => { await Promise.resolve(); });
     // copy button should exist; clicking uses window.electronAPI mock from setup
-  const copyBtns = within(view.container).getAllByTitle(/Copy to clipboard/i);
+  const copyBtns = within(view.container).getAllByTitle(/Click to copy/i);
   fireEvent.click(copyBtns[0]);
   // delete button (pick the first)
   const deleteBtn = within(view.container).getAllByTitle(/Delete clip/i)[0];
@@ -83,7 +83,7 @@ describe('HomePage', () => {
   const execSpy = vi.spyOn(document as any, 'execCommand');
     const view = render(<HomePage />);
     await act(async () => {});
-    const copyBtn = within(view.container).getByTitle(/Copy to clipboard/i);
+  const copyBtn = within(view.container).getByTitle(/Click to copy/i);
     fireEvent.click(copyBtn);
     expect(execSpy).toHaveBeenCalledWith('copy');
     execSpy.mockRestore();
