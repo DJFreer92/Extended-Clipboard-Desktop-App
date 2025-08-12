@@ -62,27 +62,22 @@ function formatFullDate(d: Date): string {
 export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, isSearching, onTagAdded }: Props) {
   // Minimum width for a column (should match minmax in CSS)
   const MIN_COL_WIDTH = 350;
-  // Horizontal padding of .app-main (clamp(16px, 4vw, 28px) each side)
-  function getHorizontalPadding() {
-    // Try to get computed style from .app-main
-    const main = document.querySelector('.app-main');
-    if (main) {
-      const style = window.getComputedStyle(main);
-      // parseFloat handles px or computed values
-      return parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
-    }
-    // Fallback: assume max clamp value (28px each side)
-    return 56;
-  }
 
   const [numCols, setNumCols] = useState(1);
   const listRef = useRef<HTMLUListElement | null>(null);
+
+  function getHorizontalPadding(): number {
+    if (!listRef.current?.parentElement) return 0;
+    const style = window.getComputedStyle(listRef.current.parentElement);
+    const pl = parseFloat(style.paddingLeft || '0');
+    const pr = parseFloat(style.paddingRight || '0');
+    return pl + pr;
+  }
 
   // Update number of columns on resize
   useLayoutEffect(() => {
     function updateCols() {
       if (!listRef.current) return;
-      // The parent of .clip-list is likely .app-main
       const container = listRef.current.parentElement;
       if (!container) return;
       const totalPadding = getHorizontalPadding();
@@ -94,14 +89,13 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     window.addEventListener('resize', updateCols);
     return () => window.removeEventListener('resize', updateCols);
   }, []);
-  // Modal state for viewing full content
+
   const [openClip, setOpenClip] = useState<ClipModel | null>(null);
   const closeModal = () => setOpenClip(null);
-  const hasClips = !!(clips && clips.length);
+  const hasClips = clips && clips.length > 0;
 
-
-  // Group clips by date
-  const groups = useMemo(() => {
+  // Group clips by date (most recent first)
+  const groups = useMemo<ClipGroup[]>(() => {
     const map = new Map<string, ClipGroup>();
     clips.forEach((clip, idx) => {
       const d = toDate(clip.Timestamp);
@@ -111,39 +105,43 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
       }
       map.get(key)!.items.push({ clip, index: idx });
     });
-    return Array.from(map.values());
+    // Sort groups by date desc
+    return Array.from(map.values()).sort((a, b) => {
+      const [ay, am, ad] = a.key.split('-').map(Number);
+      const [by, bm, bd] = b.key.split('-').map(Number);
+      return new Date(by, bm - 1, bd).getTime() - new Date(ay, am - 1, ad).getTime();
+    });
   }, [clips]);
 
-  // Collapsed state for groups
-  const [collapsed, setCollapsed] = useState<{ [key: string]: boolean }>({});
+  // Collapsed groups state
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggleGroup = (key: string) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
-  // Track which clip ids have expanded (ellipsis clicked) to show all tags/apps
+
+  // Tag badge expansion state per clip
   const [expandedBadges, setExpandedBadges] = useState<Set<number>>(() => new Set());
-  const expandBadges = (id: number) => setExpandedBadges(prev => {
-    const next = new Set(prev);
-    next.add(id);
-    return next;
-  });
-  // Track last copied clip id to show a single persistent 'Copied!' label until list refresh/filter change
+  const expandBadges = (id: number) => setExpandedBadges(prev => new Set(prev).add(id));
+
+  // Copy indicator + animation
   const [copiedId, setCopiedId] = useState<number | null>(null);
-  // Incrementing counter to retrigger shake animation when same clip copied again
   const [copiedShake, setCopiedShake] = useState(0);
-  // Suppress initial shake in modal when opening an already-copied clip
   const [modalShakeSkip, setModalShakeSkip] = useState(true);
-  // Active animation flag (clears after timeout) so shake only happens right after a copy
   const [copyAnimActive, setCopyAnimActive] = useState(false);
   const animTimerRef = useRef<number | null>(null);
-  // Reset list shake allowance when page becomes visible or window refocused (user returning)
-  useEffect(() => { if (openClip) { setModalShakeSkip(true); } }, [openClip?.Id]);
 
-  // Clear any pending animation timer on unmount
-  useEffect(() => () => { if (animTimerRef.current) { window.clearTimeout(animTimerRef.current); } }, []);
-  // Reset indicator when the clips collection changes (refresh, filter changes)
+  useEffect(() => {
+    return () => { if (animTimerRef.current) window.clearTimeout(animTimerRef.current); };
+  }, []);
+
+  // Reset copied state when clips list changes
   useEffect(() => { setCopiedId(null); setCopiedShake(0); }, [clips]);
 
-  // Tag id cache for name -> id mapping (needed for removal API which uses tag id)
+  // When opening a clip, suppress initial shake
+  useEffect(() => { if (openClip) setModalShakeSkip(true); }, [openClip?.Id]);
+
+  // Tag id cache for name -> id mapping
   const [tagIdMap, setTagIdMap] = useState<Record<string, number>>({});
-  const [, forceRender] = useState(0); // simple force re-render when mutating clip objects directly
+  // Local re-render trigger for optimistic in-place clip object mutations (tags etc.)
+  const [, forceRender] = useState(0);
 
   async function getTagId(tagName: string): Promise<number | undefined> {
     if (tagIdMap[tagName] != null) return tagIdMap[tagName];
@@ -160,15 +158,14 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     }
   }
 
-  // Retry helper: fetch tags again after a short delay if id not immediately available (newly added tag propagation)
   async function resolveTagIdWithRetry(tagName: string, retries = 2, delayMs = 220): Promise<number | undefined> {
     for (let attempt = 0; attempt <= retries; attempt++) {
       const id = await getTagId(tagName);
       if (id != null) return id;
       if (attempt < retries) {
         await new Promise(r => setTimeout(r, delayMs));
-        // Force refresh by deleting cache entry so getTagId refetches
-        setTagIdMap(m => { const { [tagName]: _, ...rest } = m; return rest; });
+        // Force refresh
+        setTagIdMap(m => { const { [tagName]: _omit, ...rest } = m; return rest; });
       }
     }
     return undefined;
@@ -176,15 +173,15 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
 
   async function handleRemoveTag(clip: ClipModel, tagName: string) {
     if (!clip.Tags || !clip.Tags.includes(tagName)) return;
-    // Optimistic UI update
-    clip.Tags = clip.Tags.filter(t => t !== tagName);
-    // Update modal open clip if it's the same
-    setOpenClip(c => c && c.Id === clip.Id ? { ...c, Tags: c.Tags.filter(t => t !== tagName) } : c);
+    // Optimistic UI (immutable update + update modal clip if open)
+    const updatedTags = clip.Tags.filter(t => t !== tagName);
+    Object.assign(clip, { Tags: updatedTags }); // For in-place update if needed elsewhere
     forceRender(x => x + 1);
+    setOpenClip(c => c && c.Id === clip.Id ? { ...c, Tags: updatedTags } : c);
     try {
       const id = await resolveTagIdWithRetry(tagName);
       if (id == null) {
-        console.warn('Tag id not found after retries; removal API not called for tag', tagName);
+        console.warn('Tag id not found; skipping API call for removal of', tagName);
         return;
       }
       const svc = (await import('../../services/clipService')).clipService;
@@ -193,12 +190,30 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
       console.error('Failed to remove tag', e);
     }
   }
+  const triggerCopy = (clip: ClipModel, index: number) => {
+    onCopy(clip, index);
+    setCopiedId(clip.Id);
+    setCopiedShake(s => s + 1);
+    setCopyAnimActive(true);
+    if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
+    animTimerRef.current = window.setTimeout(() => setCopyAnimActive(false), 520);
+  };
 
+  function handleTagAdded(clip: ClipModel, name?: string) {
+    if (name) {
+      if (!clip.Tags) clip.Tags = [];
+      if (!clip.Tags.includes(name)) {
+        clip.Tags = [...clip.Tags, name];
+        forceRender(x => x + 1);
+      }
+      onTagAdded?.(name);
+    }
+  }
   return (
     <Fragment>
       {!hasClips ? (
         <div className="empty-state" role="status" aria-live="polite">
-          <p>{isSearching ? "No results" : "No clips yet"}</p>
+          <p>{isSearching ? 'No results' : 'No clips yet'}</p>
           {!isSearching && <small>Copy something to see it here.</small>}
         </div>
       ) : (
@@ -232,18 +247,14 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
               </li>
               {!collapsed[g.key] && g.items.map(({ clip, index }) => {
                 const isFav = !!clip.IsFavorite;
-                // Truncate tags if total estimated width of app + tags exceeds threshold
                 const THRESHOLD = 140; // px budget for badges area
                 const CHAR_PX = 6; // approximate per-character width
                 const BASE_BADGE = 20; // base padding + border per badge
                 let used = 0;
                 const limitedTags: string[] = [];
-                if (clip.FromAppName) {
-                  used += BASE_BADGE + clip.FromAppName.length * CHAR_PX;
-                }
+                if (clip.FromAppName) used += BASE_BADGE + clip.FromAppName.length * CHAR_PX;
                 if (clip.Tags && clip.Tags.length) {
                   if (expandedBadges.has(clip.Id)) {
-                    // Show all tags when expanded
                     limitedTags.push(...clip.Tags);
                   } else {
                     for (const t of clip.Tags) {
@@ -261,14 +272,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                     className={`clip-item${isFav ? ' is-favorite' : ''}`}
                     role="listitem"
                     data-time={formatTimeAMPM(toDate(clip.Timestamp))}
-                    onClick={() => {
-                      onCopy(clip, index);
-                      setCopiedId(clip.Id);
-                      setCopiedShake(s => s + 1); // force re-render/key for animation restart
-                      setCopyAnimActive(true);
-                      if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
-                      animTimerRef.current = window.setTimeout(() => setCopyAnimActive(false), 520);
-                    }}
+                    onClick={() => triggerCopy(clip, index)}
                     title="Click to copy"
                   >
                     <button
@@ -276,7 +280,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                       className={`favorite-btn${isFav ? ' active' : ''}`}
                       aria-label={isFav ? 'Unfavorite clip' : 'Favorite clip'}
                       title={isFav ? 'Unfavorite' : 'Favorite'}
-                      onClick={e => { e.stopPropagation(); onToggleFavorite?.(clip); }}
+                      onClick={e => { e.stopPropagation(); onToggleFavorite?.(clip); setOpenClip(c => c && c.Id === clip.Id ? { ...c, IsFavorite: !c.IsFavorite } : c); }}
                     >
                       <span className={'icon icon-star_filled'} style={{ background: isFav ? '#facc15' : '#4a4f58' }} aria-hidden="true" />
                     </button>
@@ -293,20 +297,17 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                       {clip.FromAppName && (
                         <span className="badge badge-app" title={clip.FromAppName}>{clip.FromAppName}</span>
                       )}
-                      {showTags.map(t => (
-                        t === '…' ? (
-                          expandedBadges.has(clip.Id) ? null : (
-                            <button
-                              key={'ellipsis_'+clip.Id}
-                              type="button"
-                              className="badge badge-tag badge-ellipsis"
-                              title="Show all tags"
-                              onClick={e => { e.stopPropagation(); expandBadges(clip.Id); }}
-                            >
-                              …
-                            </button>
-                          )
-                        ) : (
+                      {showTags.map(t => t === '…'
+                        ? (expandedBadges.has(clip.Id) ? null : (
+                          <button
+                            key={'ellipsis_' + clip.Id}
+                            type="button"
+                            className="badge badge-tag badge-ellipsis"
+                            title="Show all tags"
+                            onClick={e => { e.stopPropagation(); expandBadges(clip.Id); }}
+                          >…</button>
+                        ))
+                        : (
                           <span key={t + '_tag'} className="badge badge-tag tag-removable" title={t} onClick={e => e.stopPropagation()}>
                             {t}
                             <button
@@ -319,16 +320,10 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                               <span className="icon icon-remove" aria-hidden="true" />
                             </button>
                           </span>
-                        )
-                      ))}
+                        ))}
                       <TagAddControl
                         clip={clip}
-                        onAdded={(name) => {
-                          if (name) {
-                            clip.Tags = [...(clip.Tags || []), name];
-                            onTagAdded?.(name);
-                          }
-                        }}
+                        onAdded={(name) => handleTagAdded(clip, name)}
                       />
                       <button
                         type="button"
@@ -356,14 +351,9 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
           ))}
         </ul>
       )}
-      {/* Modal for viewing full clip content */}
+
       {openClip && (
-        <div
-          className="modal-overlay"
-          role="dialog"
-          aria-modal="true"
-          onClick={closeModal}
-        >
+        <div className="modal-overlay" role="dialog" aria-modal="true" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header" style={{ position: 'relative' }}>
               {onToggleFavorite && (
@@ -382,7 +372,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                 Clip
                 {(() => {
                   const d = toDate(openClip.Timestamp);
-                  const label = `${formatRelative(d)} | ${formatFullDate(d)} | ${formatTimeAMPM(toDate(openClip.Timestamp))}`;
+                  const label = `${formatRelative(d)} | ${formatFullDate(d)} | ${formatTimeAMPM(d)}`;
                   return (
                     <span style={{ marginLeft: 8, color: 'var(--muted)', fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       ({label})
@@ -417,13 +407,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                 ))}
                 <TagAddControl
                   clip={openClip}
-                  onAdded={(name) => {
-                    if (name) {
-                      openClip.Tags = [...(openClip.Tags || []), name];
-                      setOpenClip({ ...openClip });
-                      onTagAdded?.(name);
-                    }
-                  }}
+                  onAdded={(name) => { if (name) { setOpenClip(c => c ? { ...c, Tags: c.Tags && !c.Tags.includes(name) ? [...c.Tags, name] : (c.Tags || [name]) } : c); onTagAdded?.(name); } }}
                   alwaysVisible
                 />
               </div>
@@ -433,7 +417,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                 aria-label="Close"
                 title="Close"
                 onClick={closeModal}
-                style={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)' }}
+                style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)' }}
               >
                 <span className="icon icon-close" aria-hidden="true" />
               </button>
@@ -447,13 +431,9 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                   aria-label="Copy clip"
                   title="Copy clip"
                   onClick={() => {
-                    onCopy(openClip, -1);
-                    setCopiedId(openClip.Id);
-                    setCopiedShake(s => s + 1);
+                    const idx = clips.findIndex(c => c.Id === openClip.Id);
+                    triggerCopy(openClip, idx === -1 ? 0 : idx);
                     setModalShakeSkip(false);
-                    setCopyAnimActive(true);
-                    if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
-                    animTimerRef.current = window.setTimeout(() => setCopyAnimActive(false), 520);
                   }}
                 >
                   <span className="icon icon-copy" aria-hidden="true" />

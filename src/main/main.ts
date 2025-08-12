@@ -21,13 +21,8 @@ async function getFrontmostAppName(): Promise<string | undefined> {
 		if (!name) return undefined;
 		// If it's our own app (Electron app name) just return our configured name
 		if (name === app.getName()) return name;
-		// Special handling: Some Electron-based apps may report generic 'Electron'.
-		// User requirement: Treat 'Electron' as 'Visual Studio Code' unless THIS app is focused.
-		if (name === 'Electron') {
-			// If our window is focused, attribute to our own app name; otherwise assume VS Code.
-			if (mainWindow?.isFocused()) return app.getName();
-			return 'Visual Studio Code';
-		}
+		// If macOS reports generic 'Electron' (common in dev), and it's our focused window, map to our app name; otherwise leave as 'Electron'.
+		if (name === 'Electron' && mainWindow?.isFocused()) return app.getName();
 		return name;
 	} catch {
 		return undefined;
@@ -92,7 +87,7 @@ app.whenReady().then(() => {
 			mainWindow?.webContents.send('clipboard:new', { text, appName });
 		} catch {}
 	};
-	bgInterval = setNodeInterval(tick, 100); // 0.1s polling
+	bgInterval = setNodeInterval(tick, 500); // 0.5s polling
 
 	// When renderer asks, report that background polling is active so it can disable its own poller
 	ipcMain.handle('clipboard:isBackgroundActive', async () => true);

@@ -27,12 +27,12 @@ function mkClip(id: number, content: string, ts: number): ClipModel {
 describe('ClipList', () => {
   it('shows empty state when no clips', () => {
     render(<ClipList clips={[]} onCopy={() => {}} onDelete={() => {}} />);
-  expect(!!screen.getByText(/No clips yet/i)).toBe(true);
+  expect(screen.getByText(/No clips yet/i)).toBeInTheDocument();
   });
 
   it('shows "No results" when searching and list empty', () => {
     render(<ClipList clips={[]} onCopy={() => {}} onDelete={() => {}} isSearching />);
-  expect(!!screen.getByText(/No results/i)).toBe(true);
+  expect(screen.getByText(/No results/i)).toBeInTheDocument();
   });
 
   it('groups clips by date and renders items', () => {
@@ -69,7 +69,7 @@ describe('ClipList', () => {
   const firstClip = within(view.container).getByText('A').closest('li') as HTMLElement;
   // Open via expand button (list item click copies, not opens modal)
   fireEvent.click(within(firstClip).getByTitle(/Expand clip/i));
-  expect(!!(await within(view.container).findByRole('dialog'))).toBe(true);
+  expect(await within(view.container).findByRole('dialog')).toBeInTheDocument();
   fireEvent.click(within(view.container).getByLabelText(/Close/i));
   expect(within(view.container).queryByRole('dialog')).toBeNull();
   // open again and click overlay

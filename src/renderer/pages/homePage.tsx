@@ -65,38 +65,65 @@ export default function HomePage() {
   const isFiltered = terms.length > 0 || range !== "all" || favoritesOnly || selectedTags.length > 0 || selectedApps.length > 0;
   const displayCount = isFiltered ? filteredCount : totalCount;
 
-  // Core loaders (paginated)
-  const loadFirstPage = async () => {
-    setLoading(true);
-    if (isFiltered) setCountLoading(true);
-    try {
-      if (isFiltered) {
-        // counts first
-        let cnt = 0;
-        try {
-          cnt = await clipService.getNumFilteredClips(searchCSV, timeFrame, selectedTags, selectedApps, favoritesOnly);
-          setFilteredCount(cnt);
-        } catch (e) {
-          console.error("Failed to fetch filtered count", e);
-          setFilteredCount(0);
-          // count failure alone shouldn't trigger main fetch error yet
-        }
-        setCountLoading(false);
-  const page = await clipService.filterNClips(searchCSV, timeFrame, pageSize, selectedTags, selectedApps, favoritesOnly);
-        const mapped = page.map(fromApi);
-        setClips(mapped);
-        // Refresh taxonomy (tags/apps) after fetching filtered clips
+  // Debounced taxonomy refresh to avoid redundant API calls
+  const taxonomyRefreshTimeout = useRef<NodeJS.Timeout | null>(null);
+  const taxonomyLastFetched = useRef<number>(0);
+  const TAXONOMY_DEBOUNCE_MS = 500;
+
+  const refreshTaxonomy = (immediate = false) => {
+    if (immediate) {
+      (async () => {
         try {
           const [tagsResp, appsResp] = await Promise.all([
             clipService.getAllTags().catch(() => []),
             clipService.getAllFromApps().catch(() => []),
           ]);
-          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map(t => (t as any).name ?? t));
+          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
           if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
         } catch {}
-        setHasMore(mapped.length > 0 && mapped.length < cnt ? true : (mapped.length === pageSize));
-        setFetchError(null); // success path
-      } else {
+      })();
+      return;
+    }
+    if (taxonomyRefreshTimeout.current) clearTimeout(taxonomyRefreshTimeout.current);
+    taxonomyRefreshTimeout.current = setTimeout(async () => {
+      const now = Date.now();
+      if (now - taxonomyLastFetched.current < TAXONOMY_DEBOUNCE_MS) return;
+      taxonomyLastFetched.current = now;
+      try {
+        const [tagsResp, appsResp] = await Promise.all([
+          clipService.getAllTags().catch(() => []),
+          clipService.getAllFromApps().catch(() => []),
+        ]);
+        if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
+        if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
+      } catch {}
+    }, TAXONOMY_DEBOUNCE_MS);
+  };
+
+  // Core loaders (paginated)
+  const loadFirstPage = async () => {
+    setLoading(true);
+    if (isFiltered) setCountLoading(true);
+    try {
+  if (isFiltered) {
+    // counts first
+    let cnt = 0;
+    try {
+      cnt = await clipService.getNumFilteredClips(searchCSV, timeFrame, selectedTags, selectedApps, favoritesOnly);
+      setFilteredCount(cnt);
+    } catch (e) {
+      console.error("Failed to fetch filtered count", e);
+      setFilteredCount(0);
+      // count failure alone shouldn't trigger main fetch error yet
+    }
+    setCountLoading(false);
+    const page = await clipService.filterNClips(searchCSV, timeFrame, pageSize, selectedTags, selectedApps, favoritesOnly);
+    const mapped = page.map(fromApi);
+    setClips(mapped);
+    refreshTaxonomy(true); // immediate fetch for tests / initial render
+    setHasMore(mapped.length > 0 && mapped.length < cnt ? true : (mapped.length === pageSize));
+    setFetchError(null); // success path
+  } else {
         let cnt = 0;
         try {
           cnt = await clipService.getNumClips();
@@ -110,15 +137,7 @@ export default function HomePage() {
         const page = await clipService.getRecentClips(pageSize);
         const mapped = page.map(fromApi);
         setClips(mapped);
-        // Refresh taxonomy (tags/apps) after fetching unfiltered clips
-        try {
-          const [tagsResp, appsResp] = await Promise.all([
-            clipService.getAllTags().catch(() => []),
-            clipService.getAllFromApps().catch(() => []),
-          ]);
-            if (Array.isArray(tagsResp)) setAllTags(tagsResp.map(t => (t as any).name ?? t));
-            if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
-        } catch {}
+  refreshTaxonomy(true);
         setHasMore(mapped.length > 0 && (mapped.length < cnt ? true : mapped.length === pageSize));
         setFetchError(null); // success path
       }
@@ -129,15 +148,7 @@ export default function HomePage() {
         const dto = await clipService.getAllClips();
         const mapped = dto.map(fromApi);
         setClips(mapped);
-        // Refresh taxonomy after fallback load
-        try {
-          const [tagsResp, appsResp] = await Promise.all([
-            clipService.getAllTags().catch(() => []),
-            clipService.getAllFromApps().catch(() => []),
-          ]);
-          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map(t => (t as any).name ?? t));
-          if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
-        } catch {}
+  refreshTaxonomy(true);
         setHasMore(false);
         setTotalCount(mapped.length);
         setFetchError(null); // fallback success clears error
@@ -159,21 +170,13 @@ export default function HomePage() {
     try {
       let page;
       if (isFiltered) {
-  page = await clipService.filterNClipsBeforeId(searchCSV, timeFrame, pageSize, oldestId, selectedTags, selectedApps, favoritesOnly);
+        page = await clipService.filterNClipsBeforeId(searchCSV, timeFrame, pageSize, oldestId, selectedTags, selectedApps, favoritesOnly);
       } else {
         page = await clipService.getNClipsBeforeId(pageSize, oldestId);
       }
       const mapped = page.map(fromApi);
       setClips((prev) => [...prev, ...mapped]);
-      // Refresh taxonomy after loading more clips
-      try {
-        const [tagsResp, appsResp] = await Promise.all([
-          clipService.getAllTags().catch(() => []),
-          clipService.getAllFromApps().catch(() => []),
-        ]);
-        if (Array.isArray(tagsResp)) setAllTags(tagsResp.map(t => (t as any).name ?? t));
-        if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
-      } catch {}
+  refreshTaxonomy(true);
       // Determine if more pages exist
       if (isFiltered) {
         const expected = (clips.length + mapped.length);
@@ -207,24 +210,14 @@ export default function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchCSV, timeFrame, favoritesOnly, selectedTags.join(','), selectedApps.join(',')]);
 
-  // Load tags and derive known apps from current clips periodically / on mount
+  // Load tags and apps taxonomy on mount
   useEffect(() => {
-    (async () => {
-      try {
-        const tags = await clipService.getAllTags();
-        setAllTags(tags.map(t => t.name));
-      } catch {}
-    })();
-  }, []);
-  // Load all distinct app names from server endpoint
-  useEffect(() => {
-    (async () => {
-      try {
-        const apps = await clipService.getAllFromApps();
-        if (Array.isArray(apps)) setAllApps(apps.filter(Boolean).sort());
-      } catch {}
-    })();
-  }, [clips.length]); // refresh apps list when clip count changes (new or deleted)
+  refreshTaxonomy(true);
+    // Cleanup debounce timeout on unmount
+    return () => {
+      if (taxonomyRefreshTimeout.current) clearTimeout(taxonomyRefreshTimeout.current);
+    };
+  }, [clipService, setAllTags, setAllApps]);
 
   const toggleFavoriteClip = async (clip: ClipModel) => {
     try {
@@ -285,7 +278,7 @@ export default function HomePage() {
       bg.isActive?.().then((active: boolean) => {
         if (stopped) return;
         if (active && typeof bg.onNew === 'function') {
-            unsubscribe = bg.onNew(async (payload: { text: string; appName?: string }) => {
+            unsubscribe = bg.onNew(async (payload: { text: string }) => {
             // A new system clipboard text was detected; add then refresh the current view
             try {
                 const text = (payload?.text ?? '').toString();
@@ -295,12 +288,10 @@ export default function HomePage() {
                   return; // skip refresh
                 }
                 try {
-                    let appName: string | undefined = payload?.appName;
-                    if (!appName) {
-                      // Try frontmost app API, then fallback to electron app name
-                      try { appName = await (window as any)?.electronAPI?.frontmostApp?.getName?.(); } catch {}
-                      if (!appName) { try { appName = await (window as any)?.electronAPI?.app?.getName?.(); } catch {} }
-                    }
+                    // Try to get appName from Electron APIs since payload does not provide it
+                    let appName: string | undefined;
+                    try { appName = await (window as any)?.electronAPI?.frontmostApp?.getName?.(); } catch {}
+                    if (!appName) { try { appName = await (window as any)?.electronAPI?.app?.getName?.(); } catch {} }
                   await clipService.addClip(text, appName);
                   if (appName && !allApps.includes(appName)) {
                     setAllApps(prev => [...prev, appName!].filter(Boolean).sort());
@@ -424,7 +415,6 @@ export default function HomePage() {
       stopped = true;
     };
   }, [isFiltered, searchCSV, timeFrame, clips]);
-
   // Infinite scroll: observe sentinel
   useEffect(() => {
     const node = sentinelRef.current;
@@ -641,12 +631,11 @@ export default function HomePage() {
                 margin: -1,
                 overflow: 'hidden',
                 clip: 'rect(0 0 0 0)',
-                whiteSpace: 'nowrap',
                 border: 0
               }}
             >
               <option value="all">All time</option>
-              <option value="day">Past day</option>
+              <option value="24h">Past 24 hours</option>
               <option value="week">Past week</option>
               <option value="month">Past month</option>
               <option value="year">Past year</option>
@@ -735,8 +724,8 @@ export default function HomePage() {
       <div className={`clips-container ${clips.length === 0 ? "is-empty" : ""}`}>
   <ClipList clips={clips} onCopy={handleCopy} onDelete={handleDelete} onToggleFavorite={toggleFavoriteClip} isSearching={isFiltered} onTagAdded={async (tag) => {
     if (tag && !allTags.includes(tag)) setAllTags(prev => [...prev, tag].sort());
-    // Also refresh from server (non-blocking) to capture any concurrent changes
-    try { const tags = await clipService.getAllTags(); setAllTags(tags.map(t => t.name)); } catch {}
+    // Debounced refresh from server to capture any concurrent changes
+    refreshTaxonomy();
   }} />
         {/* sentinel for infinite scrolling */}
         <div ref={sentinelRef} className="infinite-sentinel" aria-hidden="true" style={{ height: 1 }} />

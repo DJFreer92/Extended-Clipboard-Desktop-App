@@ -186,11 +186,8 @@ export const clipService = {
   async getAllFromApps(): Promise<string[]> {
     try {
       const data = await http<ApiFromApps>(`/clipboard/get_all_from_apps`);
-      // Support either { apps: [] } or { from_apps: [] } or raw array fallback
-      if (Array.isArray((data as any))) return (data as any) as string[];
-      if (data && Array.isArray((data as any).apps)) return (data as any).apps as string[];
-      if (data && Array.isArray((data as any).from_apps)) return (data as any).from_apps as string[];
-      return [];
+      // Expect { apps: string[] }
+      return Array.isArray(data.apps) ? data.apps : [];
     } catch (e) {
       console.error('Failed to fetch apps list', e);
       return [];
