@@ -60,12 +60,9 @@ function formatFullDate(d: Date): string {
 }
 
 export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, isSearching, onTagAdded }: Props) {
-  // Minimum width for a column (should match minmax in CSS)
   const MIN_COL_WIDTH = 350;
-
   const [numCols, setNumCols] = useState(1);
   const listRef = useRef<HTMLUListElement | null>(null);
-
   function getHorizontalPadding(): number {
     if (!listRef.current?.parentElement) return 0;
     const style = window.getComputedStyle(listRef.current.parentElement);
@@ -73,8 +70,6 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     const pr = parseFloat(style.paddingRight || '0');
     return pl + pr;
   }
-
-  // Update number of columns on resize
   useLayoutEffect(() => {
     function updateCols() {
       if (!listRef.current) return;
@@ -94,7 +89,6 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   const closeModal = () => setOpenClip(null);
   const hasClips = clips && clips.length > 0;
 
-  // Group clips by date (most recent first)
   const groups = useMemo<ClipGroup[]>(() => {
     const map = new Map<string, ClipGroup>();
     clips.forEach((clip, idx) => {
@@ -105,7 +99,6 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
       }
       map.get(key)!.items.push({ clip, index: idx });
     });
-    // Sort groups by date desc
     return Array.from(map.values()).sort((a, b) => {
       const [ay, am, ad] = a.key.split('-').map(Number);
       const [by, bm, bd] = b.key.split('-').map(Number);
@@ -113,36 +106,20 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     });
   }, [clips]);
 
-  // Collapsed groups state
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const toggleGroup = (key: string) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
-
-  // Tag badge expansion state per clip
   const [expandedBadges, setExpandedBadges] = useState<Set<number>>(() => new Set());
   const expandBadges = (id: number) => setExpandedBadges(prev => new Set(prev).add(id));
-
-  // Copy indicator + animation
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [copiedShake, setCopiedShake] = useState(0);
   const [modalShakeSkip, setModalShakeSkip] = useState(true);
   const [copyAnimActive, setCopyAnimActive] = useState(false);
   const animTimerRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => { if (animTimerRef.current) window.clearTimeout(animTimerRef.current); };
-  }, []);
-
-  // Reset copied state when clips list changes
+  useEffect(() => { return () => { if (animTimerRef.current) window.clearTimeout(animTimerRef.current); }; }, []);
   useEffect(() => { setCopiedId(null); setCopiedShake(0); }, [clips]);
-
-  // When opening a clip, suppress initial shake
   useEffect(() => { if (openClip) setModalShakeSkip(true); }, [openClip?.Id]);
-
-  // Tag id cache for name -> id mapping
   const [tagIdMap, setTagIdMap] = useState<Record<string, number>>({});
-  // Local re-render trigger for optimistic in-place clip object mutations (tags etc.)
   const [, forceRender] = useState(0);
-
   async function getTagId(tagName: string): Promise<number | undefined> {
     if (tagIdMap[tagName] != null) return tagIdMap[tagName];
     try {
@@ -157,38 +134,29 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
       return undefined;
     }
   }
-
   async function resolveTagIdWithRetry(tagName: string, retries = 2, delayMs = 220): Promise<number | undefined> {
     for (let attempt = 0; attempt <= retries; attempt++) {
       const id = await getTagId(tagName);
       if (id != null) return id;
       if (attempt < retries) {
         await new Promise(r => setTimeout(r, delayMs));
-        // Force refresh
         setTagIdMap(m => { const { [tagName]: _omit, ...rest } = m; return rest; });
       }
     }
     return undefined;
   }
-
   async function handleRemoveTag(clip: ClipModel, tagName: string) {
     if (!clip.Tags || !clip.Tags.includes(tagName)) return;
-    // Optimistic UI (immutable update + update modal clip if open)
     const updatedTags = clip.Tags.filter(t => t !== tagName);
-    Object.assign(clip, { Tags: updatedTags }); // For in-place update if needed elsewhere
+    Object.assign(clip, { Tags: updatedTags });
     forceRender(x => x + 1);
     setOpenClip(c => c && c.Id === clip.Id ? { ...c, Tags: updatedTags } : c);
     try {
       const id = await resolveTagIdWithRetry(tagName);
-      if (id == null) {
-        console.warn('Tag id not found; skipping API call for removal of', tagName);
-        return;
-      }
+      if (id == null) { console.warn('Tag id not found; skipping API call for removal of', tagName); return; }
       const svc = (await import('../../services/clipService')).clipService;
       await svc.removeClipTag(clip.Id, id);
-    } catch (e) {
-      console.error('Failed to remove tag', e);
-    }
+    } catch (e) { console.error('Failed to remove tag', e); }
   }
   const triggerCopy = (clip: ClipModel, index: number) => {
     onCopy(clip, index);
@@ -198,7 +166,6 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     if (animTimerRef.current) window.clearTimeout(animTimerRef.current);
     animTimerRef.current = window.setTimeout(() => setCopyAnimActive(false), 520);
   };
-
   function handleTagAdded(clip: ClipModel, name?: string) {
     if (name) {
       if (!clip.Tags) clip.Tags = [];
@@ -217,25 +184,11 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
           {!isSearching && <small>Copy something to see it here.</small>}
         </div>
       ) : (
-        <ul
-          className="clip-list"
-          role="list"
-          ref={listRef}
-          style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}
-        >
+        <ul className="clip-list" role="list" ref={listRef} style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>
           {groups.map(g => (
             <Fragment key={g.key}>
-              <li
-                className={`date-separator${collapsed[g.key] ? ' is-collapsed' : ''}`}
-                aria-label={`${g.label} (${g.items.length})`}
-                style={{ gridColumn: '1 / -1' }}
-              >
-                <button
-                  type="button"
-                  className="group-toggle"
-                  aria-expanded={!collapsed[g.key]}
-                  onClick={() => toggleGroup(g.key)}
-                >
+              <li className={`date-separator${collapsed[g.key] ? ' is-collapsed' : ''}`} aria-label={`${g.label} (${g.items.length})`} style={{ gridColumn: '1 / -1' }}>
+                <button type="button" className="group-toggle" aria-expanded={!collapsed[g.key]} onClick={() => toggleGroup(g.key)}>
                   <span className={`chevron${collapsed[g.key] ? ' collapsed' : ''}`} aria-hidden="true">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M6 9l6 6 6-6" />
@@ -247,9 +200,9 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
               </li>
               {!collapsed[g.key] && g.items.map(({ clip, index }) => {
                 const isFav = !!clip.IsFavorite;
-                const THRESHOLD = 140; // px budget for badges area
-                const CHAR_PX = 6; // approximate per-character width
-                const BASE_BADGE = 20; // base padding + border per badge
+                const THRESHOLD = 140;
+                const CHAR_PX = 6;
+                const BASE_BADGE = 20;
                 let used = 0;
                 const limitedTags: string[] = [];
                 if (clip.FromAppName) used += BASE_BADGE + clip.FromAppName.length * CHAR_PX;
@@ -267,80 +220,33 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                 }
                 const showTags = limitedTags;
                 return (
-                  <li
-                    key={clip.Id}
-                    className={`clip-item${isFav ? ' is-favorite' : ''}`}
-                    role="listitem"
-                    data-time={formatTimeAMPM(toDate(clip.Timestamp))}
-                    onClick={() => triggerCopy(clip, index)}
-                    title="Click to copy"
-                  >
-                    <button
-                      type="button"
-                      className={`favorite-btn${isFav ? ' active' : ''}`}
-                      aria-label={isFav ? 'Unfavorite clip' : 'Favorite clip'}
-                      title={isFav ? 'Unfavorite' : 'Favorite'}
-                      onClick={e => { e.stopPropagation(); onToggleFavorite?.(clip); setOpenClip(c => c && c.Id === clip.Id ? { ...c, IsFavorite: !c.IsFavorite } : c); }}
-                    >
+                  <li key={clip.Id} className={`clip-item${isFav ? ' is-favorite' : ''}`} role="listitem" data-time={formatTimeAMPM(toDate(clip.Timestamp))} onClick={() => triggerCopy(clip, index)} title="Click to copy">
+                    <button type="button" className={`favorite-btn${isFav ? ' active' : ''}`} aria-label={isFav ? 'Unfavorite clip' : 'Favorite clip'} title={isFav ? 'Unfavorite' : 'Favorite'} onClick={e => { e.stopPropagation(); onToggleFavorite?.(clip); setOpenClip(c => c && c.Id === clip.Id ? { ...c, IsFavorite: !c.IsFavorite } : c); }}>
                       <span className={'icon icon-star_filled'} style={{ background: isFav ? '#facc15' : '#4a4f58' }} aria-hidden="true" />
                     </button>
                     <div className="clip-text">{clip.Content.trim()}</div>
                     <div className="clip-right-meta">
                       {copiedId === clip.Id && (
-                        <span
-                          key={`copied_${clip.Id}_${copiedShake}`}
-                          className={`copied-indicator${copyAnimActive ? ' shaking' : ''}`}
-                        >
-                          Copied!
-                        </span>
+                        <span key={`copied_${clip.Id}_${copiedShake}`} className={`copied-indicator${copyAnimActive ? ' shaking' : ''}`}>Copied!</span>
                       )}
-                      {clip.FromAppName && (
-                        <span className="badge badge-app" title={clip.FromAppName}>{clip.FromAppName}</span>
-                      )}
+                      {clip.FromAppName && (<span className="badge badge-app" title={clip.FromAppName}>{clip.FromAppName}</span>)}
                       {showTags.map(t => t === '…'
                         ? (expandedBadges.has(clip.Id) ? null : (
-                          <button
-                            key={'ellipsis_' + clip.Id}
-                            type="button"
-                            className="badge badge-tag badge-ellipsis"
-                            title="Show all tags"
-                            onClick={e => { e.stopPropagation(); expandBadges(clip.Id); }}
-                          >…</button>
+                          <button key={'ellipsis_' + clip.Id} type="button" className="badge badge-tag badge-ellipsis" title="Show all tags" onClick={e => { e.stopPropagation(); expandBadges(clip.Id); }}>…</button>
                         ))
                         : (
                           <span key={t + '_tag'} className="badge badge-tag tag-removable" title={t} onClick={e => e.stopPropagation()}>
                             {t}
-                            <button
-                              type="button"
-                              className="tag-remove-btn"
-                              aria-label={`Remove tag ${t}`}
-                              title="Remove tag"
-                              onClick={e => { e.stopPropagation(); handleRemoveTag(clip, t); }}
-                            >
+                            <button type="button" className="tag-remove-btn" aria-label={`Remove tag ${t}`} title="Remove tag" onClick={e => { e.stopPropagation(); handleRemoveTag(clip, t); }}>
                               <span className="icon icon-remove" aria-hidden="true" />
                             </button>
                           </span>
                         ))}
-                      <TagAddControl
-                        clip={clip}
-                        onAdded={(name) => handleTagAdded(clip, name)}
-                      />
-                      <button
-                        type="button"
-                        className="expand-btn"
-                        aria-label="Expand clip"
-                        title="Expand clip"
-                        onClick={e => { e.stopPropagation(); setOpenClip(clip); }}
-                      >
+                      <TagAddControl clip={clip} onAdded={(name) => handleTagAdded(clip, name)} />
+                      <button type="button" className="expand-btn" aria-label="Expand clip" title="Expand clip" onClick={e => { e.stopPropagation(); setOpenClip(clip); }}>
                         <span className="icon icon-expand" aria-hidden="true" />
                       </button>
-                      <button
-                        type="button"
-                        className="floating-delete-btn"
-                        aria-label="Delete clip"
-                        title="Delete clip"
-                        onClick={e => { e.stopPropagation(); onDelete(clip.Id); }}
-                      >
+                      <button type="button" className="floating-delete-btn" aria-label="Delete clip" title="Delete clip" onClick={e => { e.stopPropagation(); onDelete(clip.Id); }}>
                         <span className="icon icon-delete" aria-hidden="true" />
                       </button>
                     </div>
@@ -351,25 +257,16 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
           ))}
         </ul>
       )}
-
       {openClip && (
         <div className="modal-overlay" role="dialog" aria-modal="true" onClick={closeModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header" style={{ position: 'relative' }}>
               {onToggleFavorite && (
-                <button
-                  type="button"
-                  className={`favorite-btn modal-fav-btn${openClip.IsFavorite ? ' active' : ''}`}
-                  aria-label={openClip.IsFavorite ? 'Unfavorite clip' : 'Favorite clip'}
-                  title={openClip.IsFavorite ? 'Unfavorite' : 'Favorite'}
-                  onClick={e => { e.stopPropagation(); onToggleFavorite(openClip); setOpenClip({ ...openClip, IsFavorite: !openClip.IsFavorite }); }}
-                  style={{ opacity: 1 }}
-                >
+                <button type="button" className={`favorite-btn modal-fav-btn${openClip.IsFavorite ? ' active' : ''}`} aria-label={openClip.IsFavorite ? 'Unfavorite clip' : 'Favorite clip'} title={openClip.IsFavorite ? 'Unfavorite' : 'Favorite'} onClick={e => { e.stopPropagation(); onToggleFavorite(openClip); setOpenClip({ ...openClip, IsFavorite: !openClip.IsFavorite }); }} style={{ opacity: 1 }}>
                   <span className={'icon icon-star_filled'} style={{ background: openClip.IsFavorite ? '#facc15' : '#4a4f58', width: 26, height: 26 }} aria-hidden="true" />
                 </button>
               )}
-              <h3 className="modal-title">
-                Clip
+              <h3 className="modal-title">Clip
                 {(() => {
                   const d = toDate(openClip.Timestamp);
                   const label = `${formatRelative(d)} | ${formatFullDate(d)} | ${formatTimeAMPM(d)}`;
@@ -377,13 +274,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                     <span style={{ marginLeft: 8, color: 'var(--muted)', fontWeight: 400, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       ({label})
                       {copiedId === openClip.Id && (
-                        <span
-                          key={`copied_modal_${openClip.Id}_${copiedShake}_${modalShakeSkip ? 'skip' : 'anim'}`}
-                          className={`copied-indicator${(!modalShakeSkip && copyAnimActive) ? ' shaking' : ''}`}
-                          style={{ marginLeft: 4 }}
-                        >
-                          Copied!
-                        </span>
+                        <span key={`copied_modal_${openClip.Id}_${copiedShake}_${modalShakeSkip ? 'skip' : 'anim'}`} className={`copied-indicator${(!modalShakeSkip && copyAnimActive) ? ' shaking' : ''}`} style={{ marginLeft: 4 }}>Copied!</span>
                       )}
                     </span>
                   );
@@ -394,57 +285,24 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                 {openClip.Tags && openClip.Tags.map(t => (
                   <span key={t + '_modal'} className="badge badge-tag tag-removable" title={t} onClick={e => e.stopPropagation()}>
                     {t}
-                    <button
-                      type="button"
-                      className="tag-remove-btn"
-                      aria-label={`Remove tag ${t}`}
-                      title="Remove tag"
-                      onClick={e => { e.stopPropagation(); handleRemoveTag(openClip, t); }}
-                    >
+                    <button type="button" className="tag-remove-btn" aria-label={`Remove tag ${t}`} title="Remove tag" onClick={e => { e.stopPropagation(); handleRemoveTag(openClip, t); }}>
                       <span className="icon icon-remove" aria-hidden="true" />
                     </button>
                   </span>
                 ))}
-                <TagAddControl
-                  clip={openClip}
-                  onAdded={(name) => { if (name) { setOpenClip(c => c ? { ...c, Tags: c.Tags && !c.Tags.includes(name) ? [...c.Tags, name] : (c.Tags || [name]) } : c); onTagAdded?.(name); } }}
-                  alwaysVisible
-                />
+                <TagAddControl clip={openClip} onAdded={(name) => { if (name) { setOpenClip(c => c ? { ...c, Tags: c.Tags && !c.Tags.includes(name) ? [...c.Tags, name] : (c.Tags || [name]) } : c); onTagAdded?.(name); } }} alwaysVisible />
               </div>
-              <button
-                type="button"
-                className="icon-button close-btn"
-                aria-label="Close"
-                title="Close"
-                onClick={closeModal}
-                style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)' }}
-              >
+              <button type="button" className="icon-button close-btn" aria-label="Close" title="Close" onClick={closeModal} style={{ position: 'absolute', top: '50%', right: 12, transform: 'translateY(-50%)' }}>
                 <span className="icon icon-close" aria-hidden="true" />
               </button>
             </div>
             <div className="modal-body with-actions">
               <div className="modal-content">{openClip.Content.trim()}</div>
               <div className="modal-actions right">
-                <button
-                  type="button"
-                  className="icon-button copy-btn"
-                  aria-label="Copy clip"
-                  title="Copy clip"
-                  onClick={() => {
-                    const idx = clips.findIndex(c => c.Id === openClip.Id);
-                    triggerCopy(openClip, idx === -1 ? 0 : idx);
-                    setModalShakeSkip(false);
-                  }}
-                >
+                <button type="button" className="icon-button copy-btn" aria-label="Copy clip" title="Copy clip" onClick={() => { const idx = clips.findIndex(c => c.Id === openClip.Id); triggerCopy(openClip, idx === -1 ? 0 : idx); setModalShakeSkip(false); }}>
                   <span className="icon icon-copy" aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  className="icon-button delete-btn"
-                  aria-label="Delete clip"
-                  title="Delete clip"
-                  onClick={() => { onDelete(openClip.Id); closeModal(); }}
-                >
+                <button type="button" className="icon-button delete-btn" aria-label="Delete clip" title="Delete clip" onClick={() => { onDelete(openClip.Id); closeModal(); }}>
                   <span className="icon icon-delete" aria-hidden="true" />
                 </button>
               </div>
@@ -456,7 +314,6 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   );
 }
 
-// Inline component for tag adding (badge morph -> input)
 function TagAddControl({ clip, onAdded, alwaysVisible }: { clip: ClipModel; onAdded: (name?: string) => void; alwaysVisible?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
@@ -475,29 +332,14 @@ function TagAddControl({ clip, onAdded, alwaysVisible }: { clip: ClipModel; onAd
   };
   if (editing) {
     return (
-      <input
-        ref={inputRef}
-        type="text"
-        className="badge badge-tag badge-tag-input"
-        value={value}
-        placeholder={"tag"}
-        onClick={e => e.stopPropagation()}
-        onChange={e => setValue(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); setValue(""); } }}
-        onBlur={() => commit()}
-        aria-label="New tag name"
-      />
+      <input ref={inputRef} type="text" className="badge badge-tag badge-tag-input" value={value} placeholder={"tag"} onClick={e => e.stopPropagation()} onChange={e => setValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(); } else if (e.key === 'Escape') { e.preventDefault(); setEditing(false); setValue(""); } }} onBlur={() => commit()} aria-label="New tag name" />
     );
   }
   return (
-    <button
-      type="button"
-      className={`badge badge-tag badge-add${alwaysVisible ? ' always' : ''}`}
-      title="Add tag"
-      onClick={e => { e.stopPropagation(); setEditing(true); }}
-      aria-label="Add tag"
-    >
+    <button type="button" className={`badge badge-tag badge-add${alwaysVisible ? ' always' : ''}`} title="Add tag" onClick={e => { e.stopPropagation(); setEditing(true); }} aria-label="Add tag">
       <span className="icon icon-add" aria-hidden="true" />
     </button>
   );
 }
+
+// Inline component for tag adding (badge morph -> input)
