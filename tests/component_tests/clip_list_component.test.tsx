@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import ClipList from '../../src/renderer/components/clipList';
 import type { ClipModel } from '../../src/models/clip';
 
