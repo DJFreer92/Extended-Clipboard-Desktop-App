@@ -8,9 +8,11 @@ type Range = "all" | "24h" | "week" | "month" | "3months" | "year";
 export default function HomePage() {
   // Core state
   const [clips, setClips] = useState<ClipModel[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const newestIdRef = useRef<number | undefined>(undefined);
   useEffect(() => { newestIdRef.current = clips[0]?.Id; }, [clips]);
   const [loading, setLoading] = useState(false);
+  const [countLoading, setCountLoading] = useState(false); // for filtered count spinner
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [filteredCount, setFilteredCount] = useState(0);
@@ -50,6 +52,7 @@ export default function HomePage() {
   // Core loaders (paginated)
   const loadFirstPage = async () => {
     setLoading(true);
+    if (isFiltered) setCountLoading(true);
     try {
       if (isFiltered) {
         // counts first
@@ -60,11 +63,14 @@ export default function HomePage() {
         } catch (e) {
           console.error("Failed to fetch filtered count", e);
           setFilteredCount(0);
+          // count failure alone shouldn't trigger main fetch error yet
         }
+        setCountLoading(false);
         const page = await clipService.filterNClips(searchCSV, timeFrame, pageSize);
         const mapped = page.map(fromApi);
         setClips(mapped);
         setHasMore(mapped.length > 0 && mapped.length < cnt ? true : (mapped.length === pageSize));
+        setFetchError(null); // success path
       } else {
         let cnt = 0;
         try {
@@ -73,12 +79,14 @@ export default function HomePage() {
         } catch (e) {
           console.error("Failed to fetch total count", e);
           setTotalCount(0);
+          // total count failure alone shouldn't mark clips error yet
         }
         // start with most recent N
         const page = await clipService.getRecentClips(pageSize);
         const mapped = page.map(fromApi);
         setClips(mapped);
         setHasMore(mapped.length > 0 && (mapped.length < cnt ? true : mapped.length === pageSize));
+        setFetchError(null); // success path
       }
     } catch (e) {
       // Fallbacks in case API specialized endpoints fail
@@ -89,11 +97,14 @@ export default function HomePage() {
         setClips(mapped);
         setHasMore(false);
         setTotalCount(mapped.length);
+        setFetchError(null); // fallback success clears error
       } catch (e2) {
         console.error("Fallback load failed", e2);
+        setFetchError("Failed to load clips");
       }
     } finally {
       setLoading(false);
+      setCountLoading(false);
     }
   };
 
@@ -119,9 +130,11 @@ export default function HomePage() {
         const expected = (clips.length + mapped.length);
         setHasMore(mapped.length === pageSize && expected < totalCount);
       }
+      setFetchError(null); // successful load more clears error
     } catch (e) {
       console.error("Load more failed", e);
       setHasMore(false);
+      setFetchError("Failed to load more clips");
     } finally {
       setLoading(false);
     }
@@ -144,6 +157,32 @@ export default function HomePage() {
 
   // Watch system clipboard for new text and add via API (ignore self-copies), then refresh top incrementally
   useEffect(() => {
+    // If background poller is active in main process, skip setting up the renderer-side poller and instead
+    // subscribe to background notifications to top up the list.
+    const bg = (window as any)?.electronAPI?.background;
+    let unsubscribe: (() => void) | undefined;
+    let stopped = false;
+    if (bg && typeof bg.isActive === 'function') {
+      // Fire and forget; if active, attach listener and bypass local interval
+      bg.isActive?.().then((active: boolean) => {
+        if (stopped) return;
+        if (active && typeof bg.onNew === 'function') {
+          unsubscribe = bg.onNew(async (payload: { text: string }) => {
+            // A new system clipboard text was detected; add then refresh the current view
+            try {
+              const text = (payload?.text ?? '').toString();
+              if (text) {
+                try { await clipService.addClip(text); } catch (e) { console.error('Background add failed', e); }
+                await loadFirstPage();
+              }
+            } catch (e) {
+              console.error('Background refresh failed', e);
+            }
+          });
+        }
+      }).catch(() => {});
+    }
+
     let cancelled = false;
     let lastText = "";
     let ticking = false;
@@ -194,36 +233,9 @@ export default function HomePage() {
           lastText = current;
           try {
             await clipService.addClip(current);
-            // Incremental reload based on newest id
-            const newestId = newestIdRef.current;
-            try {
-              let added;
-              if (isFiltered) {
-                if (newestId) {
-                  added = await clipService.filterAllClipsAfterId(searchCSV, timeFrame, newestId);
-                } else {
-                  added = await clipService.filterNClips(searchCSV, timeFrame, pageSize);
-                }
-                // Update filtered count conservatively
-                try { setFilteredCount((c) => c + (added?.length || 0)); } catch {}
-              } else {
-                if (newestId) {
-                  added = await clipService.getAllClipsAfterId(newestId);
-                } else {
-                  added = await clipService.getRecentClips(pageSize);
-                }
-                try { setTotalCount((c) => c + (added?.length || 0)); } catch {}
-              }
-              if (added?.length) {
-                const newMapped = added.map(fromApi);
-                setClips((prev) => [...newMapped, ...prev]);
-              }
-            } catch (e) {
-              console.error("Incremental top-up failed; reloading first page", e);
-              await loadFirstPage();
-            }
+            await loadFirstPage();
           } catch (e) {
-            console.error("Failed to add clip", e);
+            console.error("Failed to add clip or refresh", e);
           }
         }
       } finally {
@@ -233,6 +245,13 @@ export default function HomePage() {
 
     let interval: any;
     const start = async () => {
+      // If background is active, do not start the local interval
+      try {
+        if (bg && typeof bg.isActive === 'function') {
+          const active = await bg.isActive();
+          if (active) return; // polling in main process
+        }
+      } catch {}
       // Try to set lastText from clipboard; priming will also ensure we don't post pre-existing values
       try {
         lastText = await readClipboard();
@@ -247,6 +266,8 @@ export default function HomePage() {
     return () => {
       cancelled = true;
       if (interval) clearInterval(interval);
+      if (unsubscribe) unsubscribe();
+      stopped = true;
     };
   }, [isFiltered, searchCSV, timeFrame]);
 
@@ -336,16 +357,23 @@ export default function HomePage() {
         <div className="search-left">
           <button
             type="button"
-            className="icon-button refresh-btn"
+            className={`icon-button refresh-btn${loading ? " spinning" : ""}`}
             title="Refresh"
             aria-label="Refresh"
             onClick={() => void refreshClips()}
+            disabled={loading}
           >
             <span className="icon icon-refresh" aria-hidden />
           </button>
+          {fetchError && (
+            <span className="fetch-error" role="status" aria-live="polite">{fetchError}</span>
+          )}
         </div>
         <div className="search-right">
           <div className="search-count" aria-live="polite">
+            {(isFiltered ? countLoading : loading) && (
+              <span className="icon icon-spinner spinner-inline" aria-label="Loading" />
+            )}
             {displayCount} {isFiltered ? (displayCount === 1 ? "matching result" : "matching results") : (displayCount === 1 ? "item" : "items")}
           </div>
           <div className="filter-select" role="group" aria-label="Filter by date range">

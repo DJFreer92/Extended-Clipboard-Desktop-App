@@ -10,7 +10,12 @@ function mkClip(id: number, content: string, ts: number): ClipModel {
 describe('ClipList', () => {
   it('shows empty state when no clips', () => {
     render(<ClipList clips={[]} onCopy={() => {}} onDelete={() => {}} />);
-    expect(screen.getByText(/No clips yet/i)).toBeInTheDocument();
+  expect(!!screen.getByText(/No clips yet/i)).toBe(true);
+  });
+
+  it('shows "No results" when searching and list empty', () => {
+    render(<ClipList clips={[]} onCopy={() => {}} onDelete={() => {}} isSearching />);
+  expect(!!screen.getByText(/No results/i)).toBe(true);
   });
 
   it('groups clips by date and renders items', () => {
@@ -23,6 +28,8 @@ describe('ClipList', () => {
   // Two date groups
   const groupToggles = view.container.querySelectorAll('button.group-toggle');
   expect(groupToggles.length).toBe(2);
+  // Collapse first group
+  groupToggles[0] && fireEvent.click(groupToggles[0]);
   });
 
   it('invokes copy and delete handlers', () => {
@@ -43,13 +50,21 @@ describe('ClipList', () => {
   const view = render(<ClipList clips={clips} onCopy={() => {}} onDelete={() => {}} />);
   const firstClip = within(view.container).getByText('A').closest('li') as HTMLElement;
   fireEvent.click(firstClip);
-  expect(await within(view.container).findByRole('dialog')).toBeInTheDocument();
+  expect(!!(await within(view.container).findByRole('dialog'))).toBe(true);
   fireEvent.click(within(view.container).getByLabelText(/Close/i));
-  expect(within(view.container).queryByRole('dialog')).not.toBeInTheDocument();
+  expect(within(view.container).queryByRole('dialog')).toBeNull();
   // open again and click overlay
   fireEvent.click(firstClip);
   const dlg = await within(view.container).findByRole('dialog');
     fireEvent.click(dlg);
-  expect(within(view.container).queryByRole('dialog')).not.toBeInTheDocument();
+  expect(within(view.container).queryByRole('dialog')).toBeNull();
+  });
+
+  it('sets data-time attribute using AM/PM format', () => {
+    const morning = new Date('2024-01-01T09:05:00');
+    const clips = [mkClip(1, 'A', +morning)];
+    const view = render(<ClipList clips={clips} onCopy={() => {}} onDelete={() => {}} />);
+    const li = view.container.querySelector('li.clip-item') as HTMLElement;
+    expect(li.getAttribute('data-time')).toMatch(/AM|PM/);
   });
 });

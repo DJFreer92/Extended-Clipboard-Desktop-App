@@ -12,7 +12,20 @@ function App() {
       <header className="app-header">
         <div className="header-bar">
           <div className="header-left">
-            <h1>Extended Clipboard</h1>
+            <h1>
+              Extended Clipboard
+              <span className="tooltip" style={{ marginLeft: 10, verticalAlign: 'middle' }}>
+                <span
+                  className="icon icon-lock encrypted-lock tooltip-trigger"
+                  aria-label="Encrypted"
+                  aria-describedby="enc-tip"
+                  tabIndex={0}
+                />
+                <span id="enc-tip" role="tooltip" className="tooltip-bubble">
+                  Your data is encrypted and kept private
+                </span>
+              </span>
+            </h1>
             <p className="subtitle">All your copied text, at a glance</p>
           </div>
           <div className="header-right">
@@ -41,7 +54,12 @@ function App() {
         </div>
       </header>
       <main className="app-main">
-        {page === "settings" ? <SettingsPage /> : <HomePage />}
+        <div style={{ display: page === 'settings' ? 'none' : 'block' }} aria-hidden={page === 'settings'}>
+          <HomePage />
+        </div>
+        <div style={{ display: page === 'settings' ? 'block' : 'none' }} aria-hidden={page !== 'settings'}>
+          <SettingsPage />
+        </div>
       </main>
     </div>
   );

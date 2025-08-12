@@ -25,6 +25,9 @@ class IO {
   callback: IntersectionObserverCallback;
   constructor(cb: IntersectionObserverCallback) {
     this.callback = cb;
+  // Track instances for tests to trigger callbacks
+  const arr = ((global as any).__ioInstances ||= []);
+  arr.push(this);
   }
   observe = vi.fn();
   unobserve = vi.fn();
