@@ -30,6 +30,13 @@ describe('clip model mapping', () => {
     expect(dto.is_favorite).toBe(true);
   });
 
+  it('toApi omits empty tags and false favorite', () => {
+    const model: ClipModel = { Id: 3, Content: 'omit', Timestamp: 1700000000000, FromAppName: null, Tags: [], IsFavorite: false };
+    const dto = toApi(model);
+    expect(dto.tags).toBeUndefined();
+    expect(dto.is_favorite).toBeUndefined();
+  });
+
   it('fromApi handles empty and invalid timestamp strings', () => {
     const empty = fromApi({ id: 1, content: 'x', timestamp: '' as any });
     const invalid = fromApi({ id: 1, content: 'x', timestamp: 'not-a-date' as any });

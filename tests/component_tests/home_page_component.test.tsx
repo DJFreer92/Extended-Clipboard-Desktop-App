@@ -17,6 +17,11 @@ vi.mock('../../src/services/clipService', () => {
       getAllClipsAfterId: vi.fn().mockResolvedValue([]),
       filterAllClipsAfterId: vi.fn().mockResolvedValue([]),
       deleteClip: vi.fn().mockResolvedValue(undefined),
+  getAllTags: vi.fn().mockResolvedValue([{ id: 1, name: 'foo' }, { id: 2, name: 'bar' }]),
+  getAllFromApps: vi.fn().mockResolvedValue(['Chrome','VSCode']),
+  addFavorite: vi.fn().mockResolvedValue(undefined),
+  removeFavorite: vi.fn().mockResolvedValue(undefined),
+  addClipTag: vi.fn().mockResolvedValue(undefined),
     },
   };
 });
@@ -137,5 +142,52 @@ describe('HomePage', () => {
       const cb = inst.callback as IntersectionObserverCallback;
       cb([{ isIntersecting: true } as any], inst as any);
     });
+  });
+
+  it('toggles favorites filter and updates button state', async () => {
+    const view = render(<HomePage />);
+    await act(async () => {});
+    const favBtn = within(view.container).getByLabelText(/Show only favorites/i);
+    fireEvent.click(favBtn);
+    // Now aria-label should flip to show all
+    expect(within(view.container).getByLabelText(/Show all clips/i)).toBeTruthy();
+  });
+
+  it('opens tag and app dropdowns and selects filters', async () => {
+    const view = render(<HomePage />);
+    await act(async () => {});
+    // Open tags
+    const tagTrigger = within(view.container).getByRole('button', { name: /Tags/ });
+    fireEvent.click(tagTrigger);
+    const fooPill = within(view.container).getByRole('button', { name: 'foo' });
+    fireEvent.click(fooPill); // select tag
+    // Close by outside click simulation (click search bar input)
+    fireEvent.click(within(view.container).getByLabelText(/Search clips/i));
+    // Open apps
+    const appTrigger = within(view.container).getByRole('button', { name: /Apps/ });
+    fireEvent.click(appTrigger);
+    const appPill = within(view.container).getByRole('button', { name: 'Chrome' });
+    fireEvent.click(appPill);
+  });
+
+  it('adds a tag via nested ClipList tag add control and refreshes taxonomy', async () => {
+    const mod = await import('../../src/services/clipService');
+    // Provide a clip with no tags initially
+    (mod.clipService.getRecentClips as any).mockResolvedValueOnce([
+      { id: 9, content: 'tag me', timestamp: new Date().toISOString() },
+    ]);
+    (mod.clipService.getNumClips as any).mockResolvedValueOnce(1);
+    const view = render(<HomePage />);
+    await act(async () => {});
+    // Open tag add input
+    const addTagBtn = within(view.container).getAllByLabelText(/Add tag/i)[0];
+    fireEvent.click(addTagBtn);
+    const input = within(view.container).getByLabelText(/New tag name/i) as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'newtag' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+  await act(async () => {});
+  // Should appear (wait for optimistic update)
+  await act(async () => {});
+  expect(within(view.container).getByText('newtag')).toBeTruthy();
   });
 });
