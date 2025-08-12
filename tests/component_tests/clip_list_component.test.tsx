@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react';
-import ClipList from '../../src/renderer/components/clipList';
+import '@testing-library/jest-dom/vitest';
+import ClipList from '../../src/renderer/components/ClipList';
 import type { ClipModel } from '../../src/models/clip';
 
 // Mock dynamic clipService import used for tag add/remove and favorite toggling side-effects
