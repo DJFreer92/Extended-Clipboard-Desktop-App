@@ -1,0 +1,60 @@
+
+/* Semantic color tokens */
+:root {
+	/* Base surfaces */
+	--color-bg: #0f1115;
+	--color-surface: #151923;
+	--color-surface-alt: #1a2030;
+
+	/* Text */
+	--color-text: #e6e9ee;
+	--color-muted: #9aa4b2;
+
+	/* Semantic roles */
+	--color-selected: #6ca2ff;
+	--color-selected-strong: #4a82e8;
+	--color-success: #6ee7b7;
+	--color-danger: #f87171;
+	--color-danger-strong: #b91c1c;
+
+	/* UI accents */
+	--color-ring: rgba(108,162,255,0.45);
+	--color-border: rgba(255,255,255,0.08);
+	--color-shadow: 0 10px 30px rgba(0,0,0,0.4);
+
+	/* Backwards-compat CSS custom property aliases -> new semantic tokens */
+	--bg: var(--color-bg);
+	--panel: var(--color-surface);
+	--panel-2: var(--color-surface-alt);
+	--text: var(--color-text);
+	--muted: var(--color-muted);
+	--brand: var(--color-selected);
+	--brand-700: var(--color-selected-strong);
+	--success: var(--color-success);
+	--danger: var(--color-danger);
+	--danger-dark: var(--color-danger-strong);
+	--ring: var(--color-ring);
+	--border: var(--color-border);
+	--shadow: var(--color-shadow);
+
+	/* Unified hover policy tokens */
+	--control-bg: #121828;
+	--hover-bg: #131a2a;
+	--hover-border-neutral: rgba(255,255,255,0.16);
+	/* Favorite button hover background */
+	--favorite-hover-bg: rgba(255, 221, 77, 0.18);
+	--favorite-icon-bg: #4a4f58;
+	--favorite-icon-white: #fff;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+	margin: 0;
+	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+	background: linear-gradient(180deg, #0f1115 0%, #111521 35%, #131a2a 70%, #0f1115 100%);
+	background-attachment: fixed;
+	color: var(--text);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}

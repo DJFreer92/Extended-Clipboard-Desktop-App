@@ -1,6 +1,9 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  build: {
+    emptyOutDir: false, // Don't clear the dist directory before building
+  },
   server: {
     port: 5174,
     strictPort: true,

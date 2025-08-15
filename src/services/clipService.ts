@@ -99,8 +99,8 @@ export const clipService = {
   // Filtering endpoints now accept selected_tags[] and favorites_only and optional n/null semantics
   async filterAllClips(search: string, timeFrame: string, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
     const params = new URLSearchParams({ search, time_frame: timeFrame });
-    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
-    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (selectedTags.length) selectedTags.forEach(t => params.append('selected_tags', t));
+    if (selectedApps.length) selectedApps.forEach(a => params.append('selected_apps', a));
     if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_all_clips?${params.toString()}`);
     return data.clips ?? [];
@@ -109,8 +109,8 @@ export const clipService = {
   async filterNClips(search: string, timeFrame: string, n: number | null, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
     const params = new URLSearchParams({ search, time_frame: timeFrame });
     if (n != null) params.set('n', String(n));
-    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
-    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (selectedTags.length) selectedTags.forEach(t => params.append('selected_tags', t));
+    if (selectedApps.length) selectedApps.forEach(a => params.append('selected_apps', a));
     if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_n_clips?${params.toString()}`);
     return data.clips ?? [];
@@ -118,8 +118,8 @@ export const clipService = {
 
   async filterAllClipsAfterId(search: string, timeFrame: string, afterId: number, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
     const params = new URLSearchParams({ search, time_frame: timeFrame, after_id: String(afterId) });
-    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
-    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (selectedTags.length) selectedTags.forEach(t => params.append('selected_tags', t));
+    if (selectedApps.length) selectedApps.forEach(a => params.append('selected_apps', a));
     if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_all_clips_after_id?${params.toString()}`);
     return data.clips ?? [];
@@ -128,8 +128,8 @@ export const clipService = {
   async filterNClipsBeforeId(search: string, timeFrame: string, n: number | null, beforeId: number, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<ApiClip[]> {
     const params = new URLSearchParams({ search, time_frame: timeFrame, before_id: String(beforeId) });
     if (n != null) params.set('n', String(n));
-    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
-    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (selectedTags.length) selectedTags.forEach(t => params.append('selected_tags', t));
+    if (selectedApps.length) selectedApps.forEach(a => params.append('selected_apps', a));
     if (favoritesOnly) params.set('favorites_only', 'true');
     const data = await http<ApiClips>(`/clipboard/filter_n_clips_before_id?${params.toString()}`);
     return data.clips ?? [];
@@ -137,8 +137,8 @@ export const clipService = {
 
   async getNumFilteredClips(search: string, timeFrame: string, selectedTags: string[] = [], selectedApps: string[] = [], favoritesOnly = false): Promise<number> {
     const params = new URLSearchParams({ search, time_frame: timeFrame });
-    if (selectedTags.length) params.set('selected_tags', selectedTags.join(','));
-    if (selectedApps.length) params.set('selected_apps', selectedApps.join(','));
+    if (selectedTags.length) selectedTags.forEach(t => params.append('selected_tags', t));
+    if (selectedApps.length) selectedApps.forEach(a => params.append('selected_apps', a));
     if (favoritesOnly) params.set('favorites_only', 'true');
     const res = await http<any>(`/clipboard/get_num_filtered_clips?${params.toString()}`);
     if (typeof res === 'number') return res as number;
@@ -185,9 +185,12 @@ export const clipService = {
   // Applications list (distinct from_app_name values)
   async getAllFromApps(): Promise<string[]> {
     try {
-      const data = await http<ApiFromApps>(`/clipboard/get_all_from_apps`);
-      // Expect { apps: string[] }
-      return Array.isArray(data.apps) ? data.apps : [];
+      // Endpoint returns a raw JSON array of strings: ["Safari", ...]
+      const data = await http<any>(`/clipboard/get_all_from_apps`);
+      if (Array.isArray(data)) return data.filter(a => typeof a === 'string' && a.trim().length).map(a => a.trim());
+      // Backward compatibility if server ever wraps
+      if (data && Array.isArray((data as any).apps)) return (data as any).apps.filter((a: any) => typeof a === 'string' && a.trim().length).map((a: string) => a.trim());
+      return [];
     } catch (e) {
       console.error('Failed to fetch apps list', e);
       return [];

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, clipboard } from "electron";
+import { app, BrowserWindow, ipcMain, clipboard, nativeImage, Menu } from "electron";
 import * as path from "path";
 import { setInterval as setNodeInterval } from "timers";
 import { execFile } from "child_process";
@@ -30,12 +30,42 @@ async function getFrontmostAppName(): Promise<string | undefined> {
 }
 
 function createWindow() {
+	// Best-effort resolve app icon from common locations in dev and prod
+	const resolveIcon = () => {
+		const isDev = !app.isPackaged;
+		const candidates = [
+			// Prefer dev paths when running in dev
+			...(isDev ? [
+				path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+				path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
+				path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
+			] : []),
+			// When packaged, resourcesPath is typically .../Extended Clipboard.app/Contents/Resources
+			path.join(process.resourcesPath ?? "", "Extended Clipboard_App_Icon.png"),
+			// When running from built dist
+			path.join(__dirname, "../Extended Clipboard_App_Icon.png"),
+			// As final fallbacks, also check dev paths even if packaged
+			path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+			path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
+			path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
+		].filter(Boolean) as string[];
+		for (const p of candidates) {
+			try {
+				const img = nativeImage.createFromPath(p);
+				if (!img.isEmpty()) return img;
+			} catch {}
+		}
+		return undefined;
+	};
+	const appIcon = resolveIcon();
+
 	mainWindow = new BrowserWindow({
 	width: 800,
 	height: 600,
 	show: false,
 	center: true,
 	backgroundColor: "#ffffff",
+	icon: appIcon, // used on Windows/Linux; ignored on macOS windows but fine to set
 	webPreferences: {
 	preload: path.join(__dirname, "preload.js"),
 	nodeIntegration: false,
@@ -73,6 +103,64 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+	// Ensure the app has a friendly name in dev and production
+	try {
+		app.setName('Extended Clipboard');
+		// Also set process title in dev (helps some shells/task switchers)
+		process.title = 'Extended Clipboard';
+	} catch {}
+	// On macOS, explicitly set an application menu so the App menu label uses app.name
+	if (process.platform === 'darwin') {
+		try {
+			const appLabel = 'Extended Clipboard';
+			try { app.setAboutPanelOptions({ applicationName: appLabel }); } catch {}
+			const menu = Menu.buildFromTemplate([
+				{
+					label: appLabel,
+					submenu: [
+						{ role: 'about', label: `About ${appLabel}` },
+						{ type: 'separator' },
+						{ role: 'services' },
+						{ type: 'separator' },
+						{ role: 'hide', label: `Hide ${appLabel}` },
+						{ role: 'hideOthers' },
+						{ role: 'unhide' },
+						{ type: 'separator' },
+						{ role: 'quit', label: `Quit ${appLabel}` },
+					],
+				},
+				{ role: 'fileMenu' },
+				{ role: 'editMenu' },
+				{ role: 'viewMenu' },
+				{ role: 'windowMenu' },
+			]);
+			Menu.setApplicationMenu(menu);
+		} catch {}
+	}
+	// Set Dock icon on macOS if available
+	try {
+		if (process.platform === 'darwin' && app.dock) {
+			const isDev = !app.isPackaged;
+			const dockCandidates = [
+				...(isDev ? [
+					path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+					path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
+					path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
+				] : []),
+				path.join(process.resourcesPath ?? "", "Extended Clipboard_App_Icon.png"),
+				path.join(__dirname, "../Extended Clipboard_App_Icon.png"),
+				path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+				path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
+				path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
+			];
+			for (const p of dockCandidates) {
+				try {
+					const img = nativeImage.createFromPath(p);
+					if (!img.isEmpty()) { app.dock.setIcon(img); break; }
+				} catch {}
+			}
+		}
+	} catch {}
 	createWindow();
 	try { lastClipboard = clipboard.readText() || ""; } catch {}
 		// Start polling system clipboard even when the app is unfocused

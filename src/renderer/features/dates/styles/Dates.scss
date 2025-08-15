@@ -1,0 +1,16 @@
+/* Date feature styles: includes date separators and related UI */
+
+.date-separator {
+  list-style: none;
+  margin: 0px 0 0px;
+  padding: 0 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+  letter-spacing: .2px;
+  text-transform: none;
+  grid-column: 1 / -1;
+}
+
+.date-separator.is-collapsed {
+  margin-bottom: 2px;
+}

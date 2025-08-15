@@ -2,13 +2,16 @@
 
 An Electron + React (Vite + TypeScript) desktop client for the Extended Clipboard API. It monitors your system clipboard, saves new clips to the server, and lets you browse, search, filter, copy, and delete saved clips. Background monitoring continues even when the app window is unfocused.
 
+[Extended Clipboard API repository](https://github.com/DJFreer92/Extended-Clipboard-API)
+
 ## Features
 
-- Background clipboard monitoring (polls every 1.5s) and saves new text clips
+- Background clipboard monitoring (polls every 0.5s) and saves new text clips
 - Fast UI with React 19 + Vite
-- Search and time-range filters with live counts
+- Search, favorites filter, tags/apps/time-range filters
 - Infinite scrolling/pagination
-- Copy-to-clipboard with robust fallbacks
+- Duplicate handling
+- Copy-to-clipboard
 - Delete single or all clips
 
 ## Quick start
@@ -16,7 +19,7 @@ An Electron + React (Vite + TypeScript) desktop client for the Extended Clipboar
 Prerequisites:
 
 - Node.js 18+ (LTS recommended)
-- The Extended Clipboard API running locally or remotely
+- The Extended Clipboard API running locally or remotely — see repo: [DJFreer92/Extended-Clipboard-API](https://github.com/DJFreer92/Extended-Clipboard-API)
 
 1. Install dependencies
 
@@ -45,7 +48,7 @@ npm run dev
 This starts:
 
 - TypeScript watch for the Electron main process
-- Vite dev server for the renderer (default <http://localhost:5174>)
+- Vite dev server for the renderer (default `http://localhost:5174`)
 - Electron in development mode with auto-reload
 
 1. Build for production
@@ -78,7 +81,7 @@ Top-level folders:
 
 ```text
 src/
-  main/       # Electron main process (background clipboard polling, IPC)
+  main/       # Electron main process (background clipboard polling, IPC, app identity)
   renderer/   # React app (Home & Settings, lists, search, filters)
   services/   # API client (clipService)
   models/     # Data models and mappers
@@ -90,6 +93,7 @@ src/
 - Emits `clipboard:new` IPC event with `{ text }` when the clipboard changes
 - Handles `clipboard:isBackgroundActive` to inform the renderer that background monitoring is running
 - Creates the BrowserWindow and loads the Vite dev server (dev) or built `index.html` (prod)
+- Sets app identity (name “Extended Clipboard”) and applies icon at runtime (including Dock icon on macOS)
 
 ### Preload (`src/main/preload.ts`)
 
@@ -120,6 +124,36 @@ Lightweight fetch wrapper using optional `VITE_API_BASE_URL`. Implements endpoin
 - `GET /clipboard/get_n_clips_before_id?n=&before_id=`
 - Filtered variants: `filter_all_clips`, `filter_n_clips`, `filter_all_clips_after_id`, `filter_n_clips_before_id`, and `get_num_filtered_clips`
 
+Implementation details:
+
+- Filters (tags/apps) are sent as repeated query params (e.g., `?selected_tags=a&selected_tags=b`)
+- Apps taxonomy endpoint returns a raw string array
+- Count endpoints may return a raw number or `{ count }`; both are supported
+
+## Behavior highlights
+
+- Full-item click-to-copy (except when clicking other action buttons)
+- “Copied!” indicator persists through favorite toggles; clears on external clipboard changes
+- Duplicate detection allows posting duplicates, except for self-copies from the app within a short suppression window
+- Favorites filter and live counts interact with server-side filtering (no client-side re-filtering of results)
+
+## Styling & design tokens
+
+Styles are modularized under `src/renderer/styles/` with semantic color tokens. Key tokens:
+
+- `--color-bg`, `--color-surface`, `--color-text`, `--color-muted`, `--color-selected`, `--color-danger`, etc.
+- Hover policy tokens for consistent neutral/utility control appearance:
+  - `--control-bg`: neutral control background (rest)
+  - `--hover-bg`: neutral hover background
+  - `--hover-border-neutral`: neutral hover border color
+  - `--ring`: focus ring color (applied via box-shadow)
+
+Policy:
+
+- Neutral/utility controls (search, dropdown triggers/options, icon buttons): neutral hover (background + border)
+- Primary actions (copy): brand hover background, dark text
+- Destructive actions (delete): danger hover background, dark text
+
 ## Testing
 
 Run the suite:
@@ -128,13 +162,19 @@ Run the suite:
 npm test
 ```
 
+Watch mode:
+
+```bash
+npm run test:watch
+```
+
 With coverage:
 
 ```bash
 npm run coverage
 ```
 
-The tests cover services, models, and UI components.
+Tests use Vitest + React Testing Library and cover services, models, and UI components.
 
 ## Troubleshooting
 
@@ -142,6 +182,10 @@ The tests cover services, models, and UI components.
 - Port conflicts: Vite defaults to 5174. Stop other processes or change the port in `package.json` → `dev:renderer`.
 - Background monitoring not working: ensure the app reached `whenReady` and no errors appear in the main process logs. The renderer should report background active and avoid its own poller.
 - Clipboard access: Electron APIs are used via preload; web clipboard fallbacks require a secure context and may be restricted by the OS.
+
+## Packaging notes
+
+Runtime sets the app name and window/Dock icon. For installer-level icons and metadata, add a packager configuration (e.g., electron-builder) with platform icon assets (`.icns`/`.ico`).
 
 ## Contributing
 

@@ -3,14 +3,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: [
-      'tests/**/*.test.{ts,tsx}',
-      'tests/**/*_tests.{ts,tsx}',
-      'tests/**/*.spec.{ts,tsx}',
-      'tests/**/*.{test,spec}.ts',
-      'tests/**/*.{test,spec}.tsx',
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'src/**/*_tests.{ts,tsx}',
     ],
     environment: 'jsdom',
-    setupFiles: ['tests/test.setup.ts'],
+    setupFiles: ['src/test.setup.ts'],
     css: false,
   globals: false,
     coverage: {

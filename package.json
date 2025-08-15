@@ -1,5 +1,6 @@
 {
-  "name": "clipboard-ui",
+  "name": "extended-clipboard",
+  "productName": "Extended Clipboard",
   "version": "1.0.0",
   "main": "dist/main/main.js",
   "scripts": {
