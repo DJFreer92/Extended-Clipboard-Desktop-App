@@ -9,6 +9,7 @@ import {
   useClipboardActions,
   useFavorites,
   useClipboardWatcher,
+  useTray,
 } from "../features";
 
 export default function HomePage() {
@@ -41,6 +42,9 @@ export default function HomePage() {
     addTag,
     addApp,
   } = searchFiltering;
+
+  // Tray integration
+  const tray = useTray();
 
   // Pagination & Data Loading
   const pagination = usePagination({
@@ -114,14 +118,50 @@ export default function HomePage() {
     };
   }, [refreshClips]);
 
-    // Enhanced tag added handler that refreshes clips
-  const handleTagAdded = (tag: string) => {
-    addTag(tag);
+    // Handle tag addition from ClipList
+  const handleTagAdded = async (tag?: string) => {
     if (tag) {
       // Trigger refresh to sync with backend after tag operations
       refreshClips();
     }
   };
+
+  // Update tray when clips change
+  useEffect(() => {
+    if (tray.isEnabled && clips.length > 0) {
+      tray.updateTrayClips(clips);
+    }
+  }, [clips, tray.isEnabled, tray.updateTrayClips]);
+
+  // Update tray search query when main app search changes
+  useEffect(() => {
+    if (tray.isEnabled) {
+      tray.setTraySearchQuery(query);
+    }
+  }, [query, tray.isEnabled, tray.setTraySearchQuery]);
+
+  // Handle tray refresh requests
+  useEffect(() => {
+    if (!tray.isEnabled) return;
+
+    const cleanup = tray.onTrayRefreshRequest(() => {
+      refreshClips();
+    });
+
+    return cleanup;
+  }, [tray.isEnabled, tray.onTrayRefreshRequest, refreshClips]);
+
+  // Handle tray copy feedback
+  useEffect(() => {
+    if (!tray.isEnabled) return;
+
+    const cleanup = tray.onTrayCopied((payload) => {
+      // The tray has already copied the text, we could show some feedback here if needed
+      console.log('Clip copied from tray:', payload.id);
+    });
+
+    return cleanup;
+  }, [tray.isEnabled, tray.onTrayCopied]);
 
   return (
     <>

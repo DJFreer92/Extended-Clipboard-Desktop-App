@@ -1,8 +1,15 @@
 import { defineConfig } from 'vite';
+import { resolve } from 'path';
 
 export default defineConfig({
   build: {
     emptyOutDir: false, // Don't clear the dist directory before building
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        tray: resolve(__dirname, 'tray.html'),
+      },
+    },
   },
   server: {
     port: 5174,

@@ -26,7 +26,9 @@ function App() {
                 </span>
               </span>
             </h1>
-            <p className="subtitle">All your copied text, at a glance</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <p className="subtitle">All your copied text, at a glance</p>
+            </div>
           </div>
           <div className="header-right">
             {page !== "settings" ? (

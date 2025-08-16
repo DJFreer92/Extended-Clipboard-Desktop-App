@@ -11,16 +11,6 @@ applyTo: "**/*.scss"
 - Use partial files (prefixed with underscore) for modular imports
 - Maintain a consistent import order in main stylesheet
 
-```scss
-// Main styles file structure
-@import 'abstracts/variables';
-@import 'abstracts/mixins';
-@import 'base/reset';
-@import 'base/typography';
-@import 'components/buttons';
-@import 'components/cards';
-```
-
 ## Variables and Configuration
 
 - Define color palettes, typography scales, and spacing systems as variables
