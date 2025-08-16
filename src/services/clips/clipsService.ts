@@ -14,10 +14,14 @@ export const clipsService = {
   },
 
   async addClip(content: string, fromAppName?: string): Promise<void> {
-    const body = {
+    const body: any = {
+      id: -1,
       content,
-      from_app_name: fromAppName,
+      timestamp: '',
     };
+    if (fromAppName) {
+      body.from_app_name = fromAppName;
+    }
     const qp = fromAppName ? `?from_app_name=${encodeURIComponent(fromAppName)}` : '';
     await http(`/clipboard/add_clip${qp}`, {
       method: 'POST',

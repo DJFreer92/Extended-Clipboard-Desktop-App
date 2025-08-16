@@ -54,7 +54,7 @@ describe('clipsService', () => {
         credentials: 'same-origin',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'test content' })
+        body: expect.stringMatching(/\{"id":\d+,"content":"test content","timestamp":"[^"]+"\}/)
       })
     );
   });
@@ -68,7 +68,7 @@ describe('clipsService', () => {
       '/clipboard/add_clip?from_app_name=VSCode',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ content: 'test content', from_app_name: 'VSCode' })
+        body: expect.stringMatching(/\{"id":\d+,"content":"test content","timestamp":"[^"]+","from_app_name":"VSCode"\}/)
       })
     );
   });
