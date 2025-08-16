@@ -66,7 +66,11 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
             tagsService.getAllTags().catch(() => []),
             appsService.getAllFromApps().catch(() => []),
           ]);
-          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
+          interface Tag {
+            name: string;
+            [key: string]: unknown;
+          }
+          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: Tag | string) => typeof t === "string" ? t : t.name));
           if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
         } catch {}
       })();
