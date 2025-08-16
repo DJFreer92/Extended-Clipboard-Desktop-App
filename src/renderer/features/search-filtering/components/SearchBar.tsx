@@ -109,14 +109,16 @@ export default function SearchBar({
               <div className="dropdown-item disabled">No tags available</div>
             ) : (
               allTags.map(tag => (
-                <label key={tag} className="dropdown-item checkbox-item" role="option">
-                  <input
-                    type="checkbox"
-                    checked={selectedTags.includes(tag)}
-                    onChange={() => onMultiSelect(tag, 'tags')}
-                  />
-                  <span>{tag}</span>
-                </label>
+                <button
+                  key={tag}
+                  type="button"
+                  className={`dropdown-item multi-select${selectedTags.includes(tag) ? ' selected' : ''}`}
+                  onClick={() => onMultiSelect(tag, 'tags')}
+                  role="option"
+                  aria-selected={selectedTags.includes(tag)}
+                >
+                  {tag}
+                </button>
               ))
             )}
           </div>
@@ -142,14 +144,16 @@ export default function SearchBar({
               <div className="dropdown-item disabled">No apps available</div>
             ) : (
               allApps.map(app => (
-                <label key={app} className="dropdown-item checkbox-item" role="option">
-                  <input
-                    type="checkbox"
-                    checked={selectedApps.includes(app)}
-                    onChange={() => onMultiSelect(app, 'apps')}
-                  />
-                  <span>{app}</span>
-                </label>
+                <button
+                  key={app}
+                  type="button"
+                  className={`dropdown-item multi-select${selectedApps.includes(app) ? ' selected' : ''}`}
+                  onClick={() => onMultiSelect(app, 'apps')}
+                  role="option"
+                  aria-selected={selectedApps.includes(app)}
+                >
+                  {app}
+                </button>
               ))
             )}
           </div>
@@ -196,7 +200,7 @@ export default function SearchBar({
                 <button
                   key={option.value}
                   type="button"
-                  className={`dropdown-item${range === option.value ? ' selected' : ''}`}
+                  className={`dropdown-item single-select${range === option.value ? ' selected' : ''}`}
                   onClick={() => {
                     onRangeChange(option.value);
                     onShowTimeMenu(false);

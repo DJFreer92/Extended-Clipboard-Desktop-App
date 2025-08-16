@@ -2,15 +2,86 @@
 
 .date-separator {
   list-style: none;
-  margin: 0px 0 0px;
-  padding: 0 2px;
+  margin: 0px 0 -8px;
+  padding: 0;
   color: var(--muted);
   font-size: 11.5px;
   letter-spacing: .2px;
   text-transform: none;
   grid-column: 1 / -1;
+  position: relative;
+  transition: all 0.12s ease;
 }
 
 .date-separator.is-collapsed {
-  margin-bottom: 2px;
+  margin-bottom: -28px;
+}
+
+/* Visual indicator for section bounds on hover */
+.date-separator.is-hovered {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 4px 8px 0 8px;
+  margin: 0 -8px 0 -8px;
+}
+
+/* Maintain collapsed spacing even when hovered */
+.date-separator.is-collapsed.is-hovered {
+  margin-bottom: -28px;
+  padding-bottom: 0;
+}
+
+/* Container for the date header content */
+.date-separator-content {
+  display: block;
+  position: relative;
+  border-radius: 8px;
+  min-height: 28px;
+  padding: 4px 8px;
+}
+
+.date-separator-content:hover .group-toggle {
+  opacity: 1;
+}
+
+/* Section delete button */
+.section-delete-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--danger);
+  border-radius: 6px;
+  padding: 4px 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 45%;
+  right: 8px;
+  transform: translateY(-50%);
+}
+
+.section-delete-btn .icon {
+  width: 14px;
+  height: 14px;
+}
+
+.section-delete-btn:hover {
+  background: var(--danger);
+  color: #0d1220;
+  border-color: var(--danger);
+}
+
+.section-delete-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Show delete button when section is hovered */
+.date-separator.is-hovered .section-delete-btn {
+  opacity: 1;
+  pointer-events: auto;
 }

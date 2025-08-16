@@ -168,20 +168,20 @@
 }
 
 /* Dropdown Components */
-.dropdown {
+.search-right .dropdown {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
 
-.dropdown .trigger {
+.search-right .dropdown .trigger {
   background: var(--control-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   color: var(--text);
-  padding: 8px 24px 8px 12px;
-  font-size: 14px;
+  padding: 6px 20px 6px 10px;
+  font-size: 12px;
   transition: all 0.12s ease;
   cursor: pointer;
   display: inline-flex;
@@ -190,14 +190,14 @@
   position: relative;
 }
 
-.dropdown .trigger::after {
+.search-right .dropdown .trigger::after {
   content: "";
   position: absolute;
-  right: 8px;
+  right: 6px;
   top: 50%;
   transform: translateY(-50%);
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   background: currentColor;
   -webkit-mask: url('../../../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain;
   mask: url('../../../../assets/icons/arrow_drop_down_24dp_E8EAED_FILL0_wght500_GRAD0_opsz24.svg') no-repeat center/contain;
@@ -205,71 +205,87 @@
   pointer-events: none;
 }
 
-.dropdown .trigger:hover {
+.search-right .dropdown .trigger:hover {
   background: var(--hover-bg);
   border-color: var(--hover-border-neutral);
 }
 
-.dropdown .trigger.active {
+.search-right .dropdown .trigger.active {
   background: rgba(108, 162, 255, 0.12);
   border-color: var(--brand);
   color: var(--brand);
 }
 
-.dropdown-menu {
+.search-right .dropdown-menu {
   position: absolute;
   top: 100%;
-  right: 0;
+  left: 0;
   z-index: 1000;
-  background: var(--panel);
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
-  max-height: 300px;
+  min-width: 180px;
+  max-height: 250px;
   overflow-y: auto;
   margin-top: 4px;
-  padding: 8px 0;
+  padding: 6px;
 }
 
-.dropdown-item {
+/* Specific positioning for dropdowns with external icons (Tags & Apps) */
+.search-right .dropdown:not(.filter-select .dropdown) .dropdown-menu {
+  left: 24px;
+}
+
+.search-right .dropdown-item {
   display: flex;
   align-items: center;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 6px 10px;
+  font-size: 12px;
   color: var(--text);
   background: transparent;
-  border: none;
+  border: 1px solid var(--border);
   width: 100%;
   text-align: left;
   cursor: pointer;
-  transition: background 0.12s ease;
+  transition: all 0.12s ease;
+  margin-bottom: 4px;
 }
 
-.dropdown-item:hover {
+.search-right .dropdown-item:last-child {
+  margin-bottom: 0;
+}
+
+.search-right .dropdown-item:hover {
   background: var(--hover-bg);
+  border-color: var(--hover-border-neutral);
+  color: var(--text);
 }
 
-.dropdown-item.selected {
-  background: rgba(108, 162, 255, 0.12);
-  color: var(--brand);
+.search-right .dropdown-item.selected {
+  background: var(--brand);
+  color: #0d1220;
+  border-color: var(--brand);
 }
 
-.dropdown-item.disabled {
+.search-right .dropdown-item.disabled {
   color: var(--muted);
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
-.dropdown-item.disabled:hover {
+.search-right .dropdown-item.disabled:hover {
   background: transparent;
+  border-color: var(--border);
+  color: var(--muted);
 }
 
-.checkbox-item {
-  cursor: pointer;
-  gap: 8px;
+/* Single-select dropdown items (8px rounded borders) */
+.search-right .dropdown-item.single-select {
+  border-radius: 8px;
 }
 
-.checkbox-item input[type="checkbox"] {
-  accent-color: var(--brand);
-  margin: 0;
+/* Multi-select dropdown items (pill corners) */
+.search-right .dropdown-item.multi-select {
+  border-radius: 999px;
 }

@@ -68,7 +68,14 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   }, [clips]);
 
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const toggleGroup = (key: string) => setCollapsed(c => ({ ...c, [key]: !c[key] }));
+
+  const handleDeleteGroup = (group: ClipGroup) => {
+    const clipIds = group.items.map(item => item.clip.Id);
+    // Delete each clip sequentially
+    clipIds.forEach(id => onDelete(id));
+  };
   const [expandedBadges, setExpandedBadges] = useState<Set<number>>(() => new Set());
   const expandBadges = (id: number) => setExpandedBadges(prev => new Set(prev).add(id));
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -171,16 +178,40 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
         <ul className="clip-list" role="list" ref={listRef} style={{ gridTemplateColumns: `repeat(${numCols}, 1fr)` }}>
           {groups.map(g => (
             <Fragment key={g.key}>
-              <li className={`date-separator${collapsed[g.key] ? ' is-collapsed' : ''}`} aria-label={`${g.label} (${g.items.length})`} style={{ gridColumn: '1 / -1' }}>
-                <button type="button" className="group-toggle" aria-expanded={!collapsed[g.key]} onClick={() => toggleGroup(g.key)}>
-                  <span className={`chevron${collapsed[g.key] ? ' collapsed' : ''}`} aria-hidden="true">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M6 9l6 6 6-6" />
-                    </svg>
-                  </span>
-                  <span className="group-label">{g.label} </span>
-                  <span className="group-count"> ({g.items.length} {g.items.length === 1 ? 'item' : 'items'})</span>
-                </button>
+              <li
+                className={`date-separator${collapsed[g.key] ? ' is-collapsed' : ''}${hoveredSection === g.key ? ' is-hovered' : ''}`}
+                aria-label={`${g.label} (${g.items.length})`}
+                style={{ gridColumn: '1 / -1' }}
+                onMouseEnter={() => setHoveredSection(g.key)}
+                onMouseLeave={() => setHoveredSection(null)}
+              >
+                <div
+                  className="date-separator-content"
+                  onClick={() => toggleGroup(g.key)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="group-toggle" aria-expanded={!collapsed[g.key]}>
+                    <span className={`chevron${collapsed[g.key] ? ' collapsed' : ''}`} aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 9l6 6 6-6" />
+                      </svg>
+                    </span>
+                    <span className="group-label">{g.label} </span>
+                    <span className="group-count"> ({g.items.length} {g.items.length === 1 ? 'item' : 'items'})</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="section-delete-btn"
+                    aria-label={`Delete all ${g.items.length} clips from ${g.label}`}
+                    title={`Delete all ${g.items.length} clips from ${g.label}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteGroup(g);
+                    }}
+                  >
+                    <span className="icon icon-delete" aria-hidden="true" />
+                  </button>
+                </div>
               </li>
               {!collapsed[g.key] && g.items.map(({ clip, index }) => {
                 const isFav = !!clip.IsFavorite;
