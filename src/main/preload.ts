@@ -20,6 +20,26 @@ contextBridge.exposeInMainWorld("electronAPI", {
 			return () => ipcRenderer.off('clipboard:new', listener);
 		},
 	},
+	tray: {
+		isSupported: () => ipcRenderer.invoke('tray:isSupported'),
+		updateClips: (clips: any[]) => ipcRenderer.invoke('tray:updateClips', clips),
+		setSearchQuery: (query: string) => ipcRenderer.invoke('tray:setSearchQuery', query),
+		onRefreshRequest: (cb: () => void) => {
+			const listener = () => cb();
+			ipcRenderer.on('tray:refresh-request', listener);
+			return () => ipcRenderer.off('tray:refresh-request', listener);
+		},
+		onCopied: (cb: (payload: { id: string }) => void) => {
+			const listener = (_e: any, payload: { id: string }) => cb(payload);
+			ipcRenderer.on('tray:copied', listener);
+			return () => ipcRenderer.off('tray:copied', listener);
+		},
+	},
+	ipcRenderer: {
+		send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
+		on: (channel: string, listener: (...args: any[]) => void) => ipcRenderer.on(channel, listener),
+		removeAllListeners: (channel: string) => ipcRenderer.removeAllListeners(channel),
+	},
 });
 
 // No other globals exposed. Keep preload small and deterministic.

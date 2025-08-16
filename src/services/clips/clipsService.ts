@@ -1,5 +1,5 @@
 import { http } from '../shared/http';
-import type { ApiClip, ApiClips } from '../shared/types';
+import type { ApiClip, ApiClips, ApiClipInput } from '../shared/types';
 
 export const clipsService = {
   // Basic CRUD operations for clips
@@ -14,9 +14,36 @@ export const clipsService = {
   },
 
   async addClip(content: string, fromAppName?: string): Promise<void> {
-    const body = {
+    const body: ApiClipInput = {
       content,
-      from_app_name: fromAppName,
+      timestamp: new Date().toISOString(), // Send current time as UTC
+      from_app_name: fromAppName || undefined,
+    };
+    const qp = fromAppName ? `?from_app_name=${encodeURIComponent(fromAppName)}` : '';
+    await http(`/clipboard/add_clip${qp}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  async addClipWithBackendTimestamp(content: string, fromAppName?: string): Promise<void> {
+    const body: ApiClipInput = {
+      content,
+      // No timestamp - let backend generate UTC timestamp
+      from_app_name: fromAppName || undefined,
+    };
+    const qp = fromAppName ? `?from_app_name=${encodeURIComponent(fromAppName)}` : '';
+    await http(`/clipboard/add_clip${qp}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+
+  async addClipWithTimestamp(content: string, timestamp: Date, fromAppName?: string): Promise<void> {
+    const body: ApiClipInput = {
+      content,
+      timestamp: timestamp.toISOString(), // Convert provided timestamp to UTC
+      from_app_name: fromAppName || undefined,
     };
     const qp = fromAppName ? `?from_app_name=${encodeURIComponent(fromAppName)}` : '';
     await http(`/clipboard/add_clip${qp}`, {
@@ -26,7 +53,7 @@ export const clipsService = {
   },
 
   async deleteClip(clipId: number): Promise<void> {
-    await http(`/clipboard/delete_clip?clip_id=${clipId}`, {
+    await http(`/clipboard/delete_clip?id=${clipId}`, {
       method: 'POST',
     });
   },

@@ -1,8 +1,8 @@
 import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/styles.scss";
-import SettingsPage from "./pages/SettingsPage";
-import HomePage from "./pages/HomePage";
+import HomePage from "./pages/homePage";
+import SettingsPage from "./pages/settingsPage";
 
 function App() {
   const [page, setPage] = useState<"home" | "settings">("home");
@@ -26,7 +26,9 @@ function App() {
                 </span>
               </span>
             </h1>
-            <p className="subtitle">All your copied text, at a glance</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <p className="subtitle">All your copied text, at a glance</p>
+            </div>
           </div>
           <div className="header-right">
             {page !== "settings" ? (

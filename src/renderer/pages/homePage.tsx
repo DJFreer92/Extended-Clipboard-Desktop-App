@@ -9,6 +9,7 @@ import {
   useClipboardActions,
   useFavorites,
   useClipboardWatcher,
+  useTray,
 } from "../features";
 
 export default function HomePage() {
@@ -42,6 +43,9 @@ export default function HomePage() {
     addApp,
   } = searchFiltering;
 
+  // Tray integration
+  const tray = useTray();
+
   // Pagination & Data Loading
   const pagination = usePagination({
     searchCSV,
@@ -65,7 +69,7 @@ export default function HomePage() {
 
   // Clipboard Management
   const { handleCopy, markSelfCopy, globalExternalCopyNonce, onExternalClipboardChange } = useClipboardActions();
-  const { toggleFavoriteClip, getFavoriteState } = useFavorites();
+  const { toggleFavoriteClip, getFavoriteState, syncWithClips } = useFavorites();
 
   // Clipboard watcher hook
   const { markSelfCopy: watcherMarkSelfCopy } = useClipboardWatcher({
@@ -73,7 +77,13 @@ export default function HomePage() {
     deps: [isFiltered, searchCSV, timeFrame, selectedTags.join(','), selectedApps.join(','), globalExternalCopyNonce],
     existingClips: clips,
     registerApp: addApp,
-    onNewClip: async () => { await refreshClips(); },
+    onNewClip: async () => {
+      // Only refresh clips if we're not currently filtering
+      // When filtering is active, new clips shouldn't override the filtered view
+      if (!isFiltered) {
+        await refreshClips();
+      }
+    },
     onExternalClipboardChange,
   });
 
@@ -86,10 +96,72 @@ export default function HomePage() {
 
   // Enhanced toggle favorite that handles UI updates
   const handleToggleFavorite = async (clip: any) => {
-    const currentState = getFavoriteState(clip);
-    const updatedClip = { ...clip, IsFavorite: !currentState };
-    await toggleFavoriteClip(updatedClip);
+    // Pass the clip as-is to toggleFavoriteClip which will determine the new state
+    await toggleFavoriteClip(clip);
   };
+
+  // Sync optimistic updates when clips array changes
+  useEffect(() => {
+    syncWithClips(clips);
+  }, [clips, syncWithClips]);
+
+  // Listen for clips deletion event from settings page
+  useEffect(() => {
+    const handleClipsDeleted = () => {
+      // Refresh clips when all clips are deleted from settings
+      refreshClips();
+    };
+
+    window.addEventListener('clipsDeleted', handleClipsDeleted);
+    return () => {
+      window.removeEventListener('clipsDeleted', handleClipsDeleted);
+    };
+  }, [refreshClips]);
+
+    // Handle tag addition from ClipList
+  const handleTagAdded = async (tag?: string) => {
+    if (tag) {
+      // Trigger refresh to sync with backend after tag operations
+      refreshClips();
+    }
+  };
+
+  // Update tray when clips change
+  useEffect(() => {
+    if (tray.isEnabled && clips.length > 0) {
+      tray.updateTrayClips(clips);
+    }
+  }, [clips, tray.isEnabled, tray.updateTrayClips]);
+
+  // Update tray search query when main app search changes
+  useEffect(() => {
+    if (tray.isEnabled) {
+      tray.setTraySearchQuery(query);
+    }
+  }, [query, tray.isEnabled, tray.setTraySearchQuery]);
+
+  // Handle tray refresh requests
+  useEffect(() => {
+    if (!tray.isEnabled) return;
+
+    const cleanup = tray.onTrayRefreshRequest(() => {
+      refreshClips();
+    });
+
+    return cleanup;
+  }, [tray.isEnabled, tray.onTrayRefreshRequest, refreshClips]);
+
+  // Handle tray copy feedback
+  useEffect(() => {
+    if (!tray.isEnabled) return;
+
+    const cleanup = tray.onTrayCopied((payload) => {
+      // The tray has already copied the text, we could show some feedback here if needed
+      console.log('Clip copied from tray:', payload.id);
+    });
+
+    return cleanup;
+  }, [tray.isEnabled, tray.onTrayCopied]);
 
   return (
     <>
@@ -134,9 +206,9 @@ export default function HomePage() {
           onCopy={handleCopyWithMarking}
           onDelete={handleDelete}
           onToggleFavorite={handleToggleFavorite}
+          onTagAdded={handleTagAdded}
           isSearching={isFiltered}
           externalClipboardNonce={globalExternalCopyNonce}
-          onTagAdded={addTag}
         />
         <InfiniteScrollSentinel sentinelRef={sentinelRef} />
       </div>

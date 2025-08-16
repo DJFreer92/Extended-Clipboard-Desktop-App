@@ -49,18 +49,36 @@ describe('ClipList – favorites toggle', () => {
     const base = Date.now();
     const clip: ClipModel = { Id: 13, Content: 'Fav Clip', Timestamp: base, FromAppName: null, Tags: [], IsFavorite: false };
     const onCopy = vi.fn();
-    const onToggleFavorite = vi.fn();
-    const view = render(<ClipList clips={[clip]} onCopy={onCopy} onDelete={() => {}} onToggleFavorite={onToggleFavorite} />);
+
+    // Mock the parent component's state management
+    let currentClips = [clip];
+    const onToggleFavorite = vi.fn((toggledClip: ClipModel) => {
+      // Simulate parent component updating the clip state
+      currentClips = currentClips.map(c =>
+        c.Id === toggledClip.Id ? { ...c, IsFavorite: !c.IsFavorite } : c
+      );
+      // Re-render with updated clips
+      view.rerender(<ClipList clips={currentClips} onCopy={onCopy} onDelete={() => {}} onToggleFavorite={onToggleFavorite} />);
+    });
+
+    const view = render(<ClipList clips={currentClips} onCopy={onCopy} onDelete={() => {}} onToggleFavorite={onToggleFavorite} />);
+
     const favBtn = within(view.container).getAllByTitle(/Favorite/i)[0];
     fireEvent.click(favBtn);
     expect(onToggleFavorite).toHaveBeenCalledWith(expect.objectContaining({ Id: 13 }));
     expect(onCopy).not.toHaveBeenCalled();
+
+    // Now the clip should be favorited
+    expect(currentClips[0].IsFavorite).toBe(true);
+
     const expandBtn = within(view.container).getByTitle(/Expand clip/i);
     fireEvent.click(expandBtn);
-    const modalFav = await within(view.container).findAllByTitle(/Favorite/i);
+    const modalFav = await within(view.container).findAllByTitle(/Unfavorite/i);
     fireEvent.click(modalFav[1]);
     expect(onToggleFavorite).toHaveBeenCalledTimes(2);
-    await waitFor(() => expect(within(view.container).getAllByLabelText(/Unfavorite clip/i).length).toBeGreaterThan(0));
+
+    // Verify the clip is now unfavorited
+    expect(currentClips[0].IsFavorite).toBe(false);
   });
 });
 
@@ -112,6 +130,81 @@ describe('ClipList – time attribute', () => {
     const view = render(<ClipList clips={[clip]} onCopy={() => {}} onDelete={() => {}} />);
     const li = view.container.querySelector('li.clip-item') as HTMLElement;
     expect(li.getAttribute('data-time')).toMatch(/AM|PM/);
+  });
+});
+
+
+describe('ClipList – tag refresh synchronization', () => {
+  it('prevents tag duplication when clips are refreshed after tag operations', async () => {
+    const base = Date.now();
+    const initialClip: ClipModel = { Id: 13, Content: 'Test', Timestamp: base, FromAppName: null, Tags: ['existing'] };
+
+    // Initial render with one tag
+    const view = render(<ClipList clips={[initialClip]} onCopy={() => {}} onDelete={() => {}} />);
+    expect(within(view.container).getAllByText('existing')).toHaveLength(1);
+
+    // Simulate adding a tag through the UI
+    const addButton = within(view.container).getByLabelText(/Add tag/i);
+    fireEvent.click(addButton);
+
+    const input = within(view.container).getByLabelText(/New tag name/i);
+    fireEvent.change(input, { target: { value: 'newtag' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    // Verify the tag appears locally (optimistically)
+    await waitFor(() => {
+      expect(within(view.container).queryByText('newtag')).toBeTruthy();
+    });
+
+    // Simulate a refresh where backend now includes the new tag
+    const updatedClip: ClipModel = {
+      Id: 13,
+      Content: 'Test',
+      Timestamp: base,
+      FromAppName: null,
+      Tags: ['existing', 'newtag'] // Backend now has both tags
+    };
+
+    view.rerender(<ClipList clips={[updatedClip]} onCopy={() => {}} onDelete={() => {}} />);
+
+    // Verify no duplication occurred
+    expect(within(view.container).getAllByText('existing')).toHaveLength(1);
+    expect(within(view.container).getAllByText('newtag')).toHaveLength(1);
+  });
+
+  it('handles tag removal synchronization correctly', async () => {
+    const base = Date.now();
+    const initialClip: ClipModel = { Id: 14, Content: 'Test', Timestamp: base, FromAppName: null, Tags: ['tag1', 'tag2'] };
+
+    // Initial render with two tags
+    const view = render(<ClipList clips={[initialClip]} onCopy={() => {}} onDelete={() => {}} />);
+    expect(within(view.container).getAllByText('tag1')).toHaveLength(1);
+    expect(within(view.container).getAllByText('tag2')).toHaveLength(1);
+
+    // Remove a tag
+    const removeBtn = within(view.container).getByLabelText(/Remove tag tag1/i);
+    fireEvent.click(removeBtn);
+
+    // Verify the tag is removed locally
+    await waitFor(() => {
+      expect(within(view.container).queryByText('tag1')).toBeNull();
+    });
+    expect(within(view.container).getAllByText('tag2')).toHaveLength(1);
+
+    // Simulate a refresh where backend has removed the tag
+    const updatedClip: ClipModel = {
+      Id: 14,
+      Content: 'Test',
+      Timestamp: base,
+      FromAppName: null,
+      Tags: ['tag2'] // Backend now only has tag2
+    };
+
+    view.rerender(<ClipList clips={[updatedClip]} onCopy={() => {}} onDelete={() => {}} />);
+
+    // Verify state is correct after refresh
+    expect(within(view.container).queryByText('tag1')).toBeNull();
+    expect(within(view.container).getAllByText('tag2')).toHaveLength(1);
   });
 });
 

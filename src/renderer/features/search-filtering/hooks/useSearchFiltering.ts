@@ -70,7 +70,7 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
             name: string;
             [key: string]: unknown;
           }
-          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: Tag | string) => typeof t === "string" ? t : t.name));
+          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => typeof t === "string" ? t : (t.name ?? String(t))));
           if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
         } catch {}
       })();
@@ -126,8 +126,8 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
   const addTag = (tag: string) => {
     if (tag && !allTags.includes(tag)) {
       setAllTags(prev => [...prev, tag].sort());
-      // Debounced refresh from server to capture any concurrent changes
-      refreshTaxonomy();
+      // Don't refresh taxonomy immediately - let it be refreshed on next natural cycle
+      // to avoid overwriting local state before backend has processed the change
     }
   };
 

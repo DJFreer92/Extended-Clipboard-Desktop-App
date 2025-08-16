@@ -24,6 +24,57 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   const MIN_COL_WIDTH = 350;
   const [numCols, setNumCols] = useState(1);
   const listRef = useRef<HTMLUListElement | null>(null);
+
+  // Local state for tag modifications to avoid direct mutation
+  const [tagModifications, setTagModifications] = useState<Record<number, { added: string[], removed: string[] }>>({});
+
+  // Sync local modifications with fresh backend data
+  useEffect(() => {
+    setTagModifications(prev => {
+      const updated: Record<number, { added: string[], removed: string[] }> = {};
+
+      Object.keys(prev).forEach(clipIdStr => {
+        const clipId = parseInt(clipIdStr);
+        const clip = clips.find(c => c.Id === clipId);
+        const modifications = prev[clipId];
+
+        if (!clip || !modifications) return;
+
+        const backendTags = clip.Tags || [];
+
+        // Filter out added tags that are now in the backend
+        const stillPendingAdded = modifications.added.filter(tag => !backendTags.includes(tag));
+
+        // Filter out removed tags that are no longer in the backend
+        const stillPendingRemoved = modifications.removed.filter(tag => backendTags.includes(tag));
+
+        // Only keep modifications if there are still pending changes
+        if (stillPendingAdded.length > 0 || stillPendingRemoved.length > 0) {
+          updated[clipId] = {
+            added: stillPendingAdded,
+            removed: stillPendingRemoved
+          };
+        }
+      });
+
+      return updated;
+    });
+  }, [clips]);
+
+  // Get effective tags for a clip (applying local modifications)
+  const getEffectiveTags = (clip: ClipModel): string[] => {
+    const modifications = tagModifications[clip.Id];
+    if (!modifications) return (clip.Tags || []).slice().sort();
+
+    const baseTags = clip.Tags || [];
+    const effectiveTags = [
+      ...baseTags.filter(tag => !modifications.removed.includes(tag)),
+      ...modifications.added
+    ];
+
+    // Sort tags lexicographically
+    return effectiveTags.sort();
+  };
   function getHorizontalPadding(): number {
     if (!listRef.current?.parentElement) return 0;
     const style = window.getComputedStyle(listRef.current.parentElement);
@@ -96,6 +147,15 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     }
   }, [clips, copiedId]);
   useEffect(() => { if (openClip) setModalShakeSkip(true); }, [openClip?.Id]);
+  // Keep modal openClip in sync with clips array (for favorite state changes)
+  useEffect(() => {
+    if (openClip) {
+      const updatedClip = clips.find(c => c.Id === openClip.Id);
+      if (updatedClip && updatedClip.IsFavorite !== openClip.IsFavorite) {
+        setOpenClip({ ...updatedClip });
+      }
+    }
+  }, [clips, openClip]);
   // Hide copied indicator when system clipboard changes externally
   useEffect(() => {
     if (externalClipboardNonce != null) {
@@ -131,17 +191,43 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     return undefined;
   }
   async function handleRemoveTag(clip: ClipModel, tagName: string) {
-    if (!clip.Tags || !clip.Tags.includes(tagName)) return;
-    const updatedTags = clip.Tags.filter(t => t !== tagName);
-    Object.assign(clip, { Tags: updatedTags });
-    forceRender(x => x + 1);
-    setOpenClip(c => c && c.Id === clip.Id ? { ...c, Tags: updatedTags } : c);
+    const effectiveTags = getEffectiveTags(clip);
+    if (!effectiveTags.includes(tagName)) return;
+
+    // Update local modifications
+    setTagModifications(prev => ({
+      ...prev,
+      [clip.Id]: {
+        added: prev[clip.Id]?.added.filter(t => t !== tagName) || [],
+        removed: [...(prev[clip.Id]?.removed || []), tagName]
+      }
+    }));
+
+    // Update modal state if open
+    setOpenClip(c => c && c.Id === clip.Id ? {
+      ...c,
+      Tags: getEffectiveTags({ ...c, Id: clip.Id }).filter(t => t !== tagName)
+    } : c);
+
     try {
       const id = await resolveTagIdWithRetry(tagName);
       if (id == null) { console.warn('Tag id not found; skipping API call for removal of', tagName); return; }
       const svc = (await import('../../services/tags/tagsService')).tagsService;
       await svc.removeClipTag(clip.Id, id);
-    } catch (e) { console.error('Failed to remove tag', e); }
+
+      // Trigger parent refresh instead of mutation
+      onTagAdded?.(''); // Empty string to trigger refresh
+    } catch (e) {
+      console.error('Failed to remove tag', e);
+      // Revert the local modification on error
+      setTagModifications(prev => ({
+        ...prev,
+        [clip.Id]: {
+          added: prev[clip.Id]?.added || [],
+          removed: (prev[clip.Id]?.removed || []).filter(t => t !== tagName)
+        }
+      }));
+    }
   }
   const triggerCopy = (clip: ClipModel, index: number) => {
     onCopy(clip, index);
@@ -153,17 +239,15 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   };
   function handleTagAdded(clip: ClipModel, name?: string) {
     if (name) {
-      // Find the actual clip in the clips array to ensure we're working with the current state
-      const actualClip = clips.find(c => c.Id === clip.Id);
-      if (actualClip) {
-        if (!actualClip.Tags) actualClip.Tags = [];
-        if (!actualClip.Tags.includes(name)) {
-          actualClip.Tags = [...actualClip.Tags, name];
-          forceRender(x => x + 1);
-          // Also update the modal state if the modal is open for this clip
-          setOpenClip(c => c && c.Id === clip.Id ? { ...c, Tags: [...(actualClip.Tags)] } : c);
+      // Update local modifications
+      setTagModifications(prev => ({
+        ...prev,
+        [clip.Id]: {
+          added: [...(prev[clip.Id]?.added || []), name],
+          removed: (prev[clip.Id]?.removed || []).filter(t => t !== name)
         }
-      }
+      }));
+
       onTagAdded?.(name);
     }
   }
@@ -221,12 +305,13 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                 const BASE_BADGE = 20;
                 let used = 0;
                 const limitedTags: string[] = [];
+                const effectiveTags = getEffectiveTags(clip);
                 if (clip.FromAppName) used += BASE_BADGE + (clip.FromAppName?.length || 0) * CHAR_PX;
-                if (clip.Tags && clip.Tags.length) {
+                if (effectiveTags && effectiveTags.length) {
                   if (isExpanded) {
-                    limitedTags.push(...clip.Tags);
+                    limitedTags.push(...effectiveTags);
                   } else {
-                    for (const t of clip.Tags) {
+                    for (const t of effectiveTags) {
                       const w = BASE_BADGE + t.length * CHAR_PX;
                       if (used + w > THRESHOLD) { limitedTags.push('…'); break; }
                       limitedTags.push(t);
@@ -248,7 +333,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                       triggerCopy(clip, index);
                     }}
                   >
-                    <button type="button" className={`favorite-btn${isFav ? ' active' : ''}`} aria-label={isFav ? 'Unfavorite clip' : 'Favorite clip'} title={isFav ? 'Unfavorite' : 'Favorite'} onClick={e => { e.stopPropagation(); setOpenClip(c => c && c.Id === clip.Id ? { ...c, IsFavorite: !c.IsFavorite } : c); onToggleFavorite?.({ ...clip, IsFavorite: !clip.IsFavorite }); }}>
+                    <button type="button" className={`favorite-btn${isFav ? ' active' : ''}`} aria-label={isFav ? 'Unfavorite clip' : 'Favorite clip'} title={isFav ? 'Unfavorite' : 'Favorite'} onClick={e => { e.stopPropagation(); onToggleFavorite?.(clip); }}>
                       <span className={'icon icon-star_filled'} style={{ background: isFav ? '#facc15' : '#4a4f58' }} aria-hidden="true" />
                     </button>
                     <button
@@ -279,7 +364,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                             </button>
                           </span>
                         ))}
-                      {!isExpanded && <TagAddControl clip={clip} onAdded={(name) => handleTagAdded(clip, name)} />}
+                      {!isExpanded && <TagAddControl clip={clip} onAdded={(name) => handleTagAdded(clip, name)} getEffectiveTags={getEffectiveTags} />}
                       <button type="button" className="expand-btn" aria-label="Expand clip" title="Expand clip" onClick={e => { e.stopPropagation(); setOpenClip(clip); }}>
                         <span className="icon icon-expand" aria-hidden="true" />
                       </button>
@@ -290,7 +375,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                     {isExpanded && (
                       <div className="clip-tags-row">
                         {clip.FromAppName && (<span className="badge badge-app" title={clip.FromAppName}>{clip.FromAppName}</span>)}
-                        {clip.Tags && clip.Tags.map(t => (
+                        {getEffectiveTags(clip).map(t => (
                           <span key={t + '_row'} className="badge badge-tag tag-removable" title={t} onClick={e => e.stopPropagation()}>
                             {t}
                             <button type="button" className="tag-remove-btn" aria-label={`Remove tag ${t}`} title="Remove tag" onClick={e => { e.stopPropagation(); handleRemoveTag(clip, t); }}>
@@ -298,7 +383,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                             </button>
                           </span>
                         ))}
-                        <TagAddControl clip={clip} onAdded={(name) => handleTagAdded(clip, name)} />
+                        <TagAddControl clip={clip} onAdded={(name) => handleTagAdded(clip, name)} getEffectiveTags={getEffectiveTags} />
                       </div>
                     )}
                   </li>
@@ -321,8 +406,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                       title={openClip.IsFavorite ? 'Unfavorite' : 'Favorite'}
                       onClick={e => {
                         e.stopPropagation();
-                        setOpenClip(c => c ? { ...c, IsFavorite: !c.IsFavorite } : c);
-                        onToggleFavorite({ ...openClip, IsFavorite: !openClip.IsFavorite });
+                        onToggleFavorite(openClip);
                       }}
                       style={{ opacity: 1 }}
                       onMouseEnter={e => {
@@ -378,7 +462,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
                     </button>
                   </span>
                 ))}
-                <TagAddControl clip={openClip} onAdded={(name) => { if (name) { setOpenClip(c => c ? { ...c, Tags: c.Tags && !c.Tags.includes(name) ? [...c.Tags, name] : (c.Tags || [name]) } : c); handleTagAdded(openClip, name); } }} alwaysVisible />
+                <TagAddControl clip={openClip} onAdded={(name) => { if (name) { setOpenClip(c => c ? { ...c, Tags: c.Tags && !c.Tags.includes(name) ? [...c.Tags, name] : (c.Tags || [name]) } : c); handleTagAdded(openClip, name); } }} getEffectiveTags={getEffectiveTags} alwaysVisible />
               </div>
             </div>
             <div className="modal-body with-actions">
@@ -397,7 +481,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   );
 }
 
-function TagAddControl({ clip, onAdded, alwaysVisible }: { clip: ClipModel; onAdded: (name?: string) => void; alwaysVisible?: boolean }) {
+function TagAddControl({ clip, onAdded, alwaysVisible, getEffectiveTags }: { clip: ClipModel; onAdded: (name?: string) => void; alwaysVisible?: boolean; getEffectiveTags?: (clip: ClipModel) => string[]; }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -406,11 +490,17 @@ function TagAddControl({ clip, onAdded, alwaysVisible }: { clip: ClipModel; onAd
     const name = value.trim();
     setEditing(false);
     if (!name) { setValue(""); return; }
-    if (clip.Tags && clip.Tags.includes(name)) { setValue(""); return; }
+
+    // Check if tag already exists in effective tags (including local modifications)
+    const effectiveTags = getEffectiveTags ? getEffectiveTags(clip) : (clip.Tags || []);
+    if (effectiveTags.includes(name)) { setValue(""); return; }
+
     try {
-      (await import('../../services/tags/tagsService')).tagsService.addClipTag(clip.Id, name);
+      await (await import('../../services/tags/tagsService')).tagsService.addClipTag(clip.Id, name);
       onAdded(name);
-    } catch (e) { console.error('Failed to add tag', e); }
+    } catch (e) {
+      console.error('Failed to add tag', e);
+    }
     setValue("");
   };
   if (editing) {
