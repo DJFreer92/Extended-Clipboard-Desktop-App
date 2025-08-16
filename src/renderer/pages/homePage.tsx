@@ -101,6 +101,19 @@ export default function HomePage() {
     syncWithClips(clips);
   }, [clips, syncWithClips]);
 
+  // Listen for clips deletion event from settings page
+  useEffect(() => {
+    const handleClipsDeleted = () => {
+      // Refresh clips when all clips are deleted from settings
+      refreshClips();
+    };
+
+    window.addEventListener('clipsDeleted', handleClipsDeleted);
+    return () => {
+      window.removeEventListener('clipsDeleted', handleClipsDeleted);
+    };
+  }, [refreshClips]);
+
     // Enhanced tag added handler that refreshes clips
   const handleTagAdded = (tag: string) => {
     addTag(tag);

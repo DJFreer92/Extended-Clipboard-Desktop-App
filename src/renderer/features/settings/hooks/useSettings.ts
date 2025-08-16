@@ -15,6 +15,10 @@ export function useSettings() {
     setBusy(true);
     try {
       await clipsService.deleteAllClips();
+
+      // Emit custom event to notify other components that clips were deleted
+      window.dispatchEvent(new CustomEvent('clipsDeleted'));
+
       return true;
     } catch (e) {
       console.error("Failed to delete all clips", e);
