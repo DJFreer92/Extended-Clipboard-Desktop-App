@@ -1,7 +1,7 @@
 {
   "name": "extended-clipboard",
   "productName": "Extended Clipboard",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A modern desktop application for intelligent clipboard management with auto-monitoring, search, filtering, and organization features.",
   "author": "Daniel Freer <djfreer@icloud.com>",
   "license": "MIT",
@@ -19,6 +19,8 @@
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:win": "npm run build && electron-builder --win",
     "dist:linux": "npm run build && electron-builder --linux",
+    "dist:all": "npm run dist:mac && npm run dist:win && npm run dist:linux",
+    "prepare-release": "./scripts/upload-release.sh",
     "test": "vitest run --reporter=dot",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage"
