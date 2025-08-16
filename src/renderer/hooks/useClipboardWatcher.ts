@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { clipService } from '../../services/clipService';
+import { clipsService } from '../../services/clips/clipsService';
 import { ClipModel } from '../../models/clip';
 
 interface ClipboardWatcherOptions {
@@ -48,7 +48,7 @@ export function useClipboardWatcher(opts: ClipboardWatcherOptions) {
         let appName: string | undefined;
         try { appName = await (window as any)?.electronAPI?.frontmostApp?.getName?.(); } catch {}
         if (!appName) { try { appName = await (window as any)?.electronAPI?.app?.getName?.(); } catch {} }
-        await clipService.addClip(text, appName);
+        await clipsService.addClip(text, appName);
         if (appName) registerApp?.(appName);
         await onNewClip(true);
       } catch (e) { console.error('Failed to add clip', e); }

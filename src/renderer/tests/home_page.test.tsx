@@ -2,25 +2,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent, act, within, waitFor } from '@testing-library/react';
 import HomePage from '../pages/HomePage';
 
-// Common mock for clipService
-vi.mock('../../services/clipService', () => ({
-  clipService: {
+// Mock modular services
+vi.mock('../../services/clips/clipsService', () => ({
+  clipsService: {
     getNumClips: vi.fn().mockResolvedValue(1),
     getRecentClips: vi.fn().mockResolvedValue([{ Id: 1, Content: 'hello', Timestamp: Date.now(), FromAppName: 'TestApp', Tags: [] }]),
     getAllClips: vi.fn().mockResolvedValue([]),
+    getNClipsBeforeId: vi.fn().mockResolvedValue([]),
+    addClip: vi.fn().mockResolvedValue(undefined),
+    deleteClip: vi.fn().mockResolvedValue(undefined),
+    deleteAllClips: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('../../services/search/searchService', () => ({
+  searchService: {
     filterNClips: vi.fn().mockResolvedValue([]),
     getNumFilteredClips: vi.fn().mockResolvedValue(0),
-    getNClipsBeforeId: vi.fn().mockResolvedValue([]),
     filterNClipsBeforeId: vi.fn().mockResolvedValue([]),
-    addClip: vi.fn().mockResolvedValue(undefined),
-    getAllClipsAfterId: vi.fn().mockResolvedValue([]),
     filterAllClipsAfterId: vi.fn().mockResolvedValue([]),
-    deleteClip: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('../../services/tags/tagsService', () => ({
+  tagsService: {
     getAllTags: vi.fn().mockResolvedValue([{ id: 1, name: 'foo' }, { id: 2, name: 'bar' }]),
+    addClipTag: vi.fn().mockResolvedValue(undefined),
+    removeClipTag: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('../../services/apps/appsService', () => ({
+  appsService: {
     getAllFromApps: vi.fn().mockResolvedValue(['Chrome','VSCode']),
+  },
+}));
+
+vi.mock('../../services/favorites/favoritesService', () => ({
+  favoritesService: {
     addFavorite: vi.fn().mockResolvedValue(undefined),
     removeFavorite: vi.fn().mockResolvedValue(undefined),
-    addClipTag: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -57,11 +78,11 @@ describe('HomePage – basic rendering and actions', () => {
 
 describe('HomePage – error & fallback paths', () => {
   it('handles copy fallback and delete failure gracefully', async () => {
-    const mod = await import('../../services/clipService');
-    (mod.clipService.getRecentClips as any).mockResolvedValueOnce([
+    const clipsModule = await import('../../services/clips/clipsService');
+    (clipsModule.clipsService.getRecentClips as any).mockResolvedValueOnce([
       { id: 1, content: 'hi', timestamp: new Date().toISOString() },
     ]);
-    (mod.clipService.getNumClips as any).mockResolvedValueOnce(1);
+    (clipsModule.clipsService.getNumClips as any).mockResolvedValueOnce(1);
     (window as any).electronAPI.clipboard.writeText = undefined as any;
     (navigator as any).clipboard.writeText = undefined as any;
     (document as any).execCommand = () => true;
@@ -72,15 +93,15 @@ describe('HomePage – error & fallback paths', () => {
     fireEvent.click(copyBtn);
     expect(execSpy).toHaveBeenCalledWith('copy');
     execSpy.mockRestore();
-    (mod.clipService.deleteClip as any).mockRejectedValueOnce(new Error('del'));
+    (clipsModule.clipsService.deleteClip as any).mockRejectedValueOnce(new Error('del'));
     const delBtn = within(view.container).getByTitle(/Delete clip/i);
     fireEvent.click(delBtn);
     fireEvent.click(within(view.container).getByLabelText(/Refresh/i));
   });
 
   it('shows fetch error when initial and fallback fail', async () => {
-    const mod = await import('../../services/clipService');
-    (mod.clipService.getNumClips as any).mockRejectedValueOnce(new Error('x'));
+    const clipsModule = await import('../../services/clips/clipsService');
+    (clipsModule.clipsService.getNumClips as any).mockRejectedValueOnce(new Error('x'));
     // ...existing code...
   });
 });
@@ -160,8 +181,8 @@ describe('HomePage – add tag via nested ClipList', () => {
     await act(async () => {});
 
     // After adding a tag, check if the addClipTag service was called
-    const { clipService } = await import('../../services/clipService');
-    const calls = (clipService.addClipTag as any).mock.calls;
+    const { tagsService } = await import('../../services/tags/tagsService');
+    const calls = (tagsService.addClipTag as any).mock.calls;
     expect(calls.length).toBeGreaterThan(0);
     expect(calls[0][1]).toBe('newtag'); // Check that the tag name is correct
   });

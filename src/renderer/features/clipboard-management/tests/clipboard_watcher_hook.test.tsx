@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useClipboardWatcher } from '../../../hooks/useClipboardWatcher';
-import { clipService } from '../../../../services/clipService';
+import { clipsService } from '../../../../services/clips/clipsService';
 import type { ClipModel } from '../../../../models/clip';
 
-vi.mock('../../../../services/clipService', () => {
-  return { clipService: { addClip: vi.fn().mockResolvedValue(undefined) } };
+vi.mock('../../../../services/clips/clipsService', () => {
+  return { clipsService: { addClip: vi.fn().mockResolvedValue(undefined) } };
 });
 
 // Helper to advance fake timers and flush promises
@@ -38,14 +38,14 @@ describe('useClipboardWatcher', () => {
     // simulate changed clipboard text
     (window as any).electronAPI.clipboard.readText.mockReturnValue('second');
     await advance(1500);
-  expect(clipService.addClip).toHaveBeenCalledWith('second', expect.any(String));
+  expect(clipsService.addClip).toHaveBeenCalledWith('second', expect.any(String));
     expect(onNew).toHaveBeenCalledWith(true);
     // self copy guard test
     result.current.markSelfCopy('self');
     (window as any).electronAPI.clipboard.readText.mockReturnValue('self');
     await advance(1500);
     // Should suppress due to guard
-    expect(clipService.addClip).not.toHaveBeenCalledWith('self', expect.anything());
+    expect(clipsService.addClip).not.toHaveBeenCalledWith('self', expect.anything());
   });
 
   it('suppresses duplicate clipboard change within suppress window', async () => {
@@ -55,13 +55,13 @@ describe('useClipboardWatcher', () => {
     await advance(1500); // prime to 'first'
     (window as any).electronAPI.clipboard.readText.mockReturnValue('A');
     await advance(1500); // detect A
-  expect(clipService.addClip).toHaveBeenCalledWith('A', expect.any(String));
+  expect(clipsService.addClip).toHaveBeenCalledWith('A', expect.any(String));
     // Duplicate within guard duration should be suppressed
     (window as any).electronAPI.clipboard.readText.mockReturnValue('A');
     await advance(1500); // suppressed repeat of A
     (window as any).electronAPI.clipboard.readText.mockReturnValue('B');
     await advance(1500); // add B
-    const calls = (clipService.addClip as any).mock.calls.map((c: any[]) => c[0]);
+    const calls = (clipsService.addClip as any).mock.calls.map((c: any[]) => c[0]);
     expect(calls.filter((x: string) => x === 'A').length).toBe(1);
     expect(calls.filter((x: string) => x === 'B').length).toBe(1);
   });
@@ -78,7 +78,7 @@ describe('useClipboardWatcher', () => {
   handler({ text: 'bgClip' });
   await Promise.resolve();
   await Promise.resolve(); // flush addClip then onNewClip
-  expect(clipService.addClip).toHaveBeenCalledWith('bgClip', expect.any(String));
+  expect(clipsService.addClip).toHaveBeenCalledWith('bgClip', expect.any(String));
   expect(onNew).toHaveBeenCalledWith(true);
   });
 
@@ -91,6 +91,6 @@ describe('useClipboardWatcher', () => {
     await advance(1500);
     (window as any).electronAPI.clipboard.readText.mockReturnValue('poller');
     await advance(1500);
-  expect(clipService.addClip).toHaveBeenCalledWith('poller', expect.any(String));
+  expect(clipsService.addClip).toHaveBeenCalledWith('poller', expect.any(String));
   });
 });

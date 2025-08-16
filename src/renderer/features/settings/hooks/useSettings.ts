@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { clipService } from "../../../../services/clipService";
+import { clipsService } from "../../../../services/clips/clipsService";
 
 export function useSettings() {
   const [busy, setBusy] = useState(false);
@@ -14,7 +14,7 @@ export function useSettings() {
 
     setBusy(true);
     try {
-      await clipService.deleteAllClips();
+      await clipsService.deleteAllClips();
       return true;
     } catch (e) {
       console.error("Failed to delete all clips", e);

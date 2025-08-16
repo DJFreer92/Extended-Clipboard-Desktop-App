@@ -19,14 +19,14 @@ describe('ClipList – empty & search states', () => {
 });
 
 // Add tag
-vi.mock('../../../../services/clipService', () => ({
-  clipService: {
+vi.mock('../../../../services/tags/tagsService', () => ({
+  tagsService: {
     addClipTag: vi.fn().mockResolvedValue(undefined),
     removeClipTag: vi.fn().mockResolvedValue(undefined),
     getAllTags: vi.fn().mockResolvedValue([{ id: 5, name: 'bar' }]),
   },
 }));
-const svcMod = () => import('../../../../services/clipService');
+const svcMod = () => import('../../../../services/tags/tagsService');
 describe('ClipList – add tag', () => {
   it('adds a tag via TagAddControl and calls service + callback', async () => {
     const base = Date.now();
@@ -40,7 +40,7 @@ describe('ClipList – add tag', () => {
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(onTagAdded).toHaveBeenCalledWith('foo'));
     const mod = await svcMod();
-    expect(mod.clipService.addClipTag).toHaveBeenCalledWith(10, 'foo');
+    expect(mod.tagsService.addClipTag).toHaveBeenCalledWith(10, 'foo');
   });
 });
 
@@ -71,7 +71,7 @@ describe('ClipList – grouping & collapse', () => {
     const clips = [mkClip(1, 'A', base), mkClip(2, 'B', base + 60_000), mkClip(3, 'C', base + 24*3600*1000)];
     const view = render(<ClipList clips={clips} onCopy={() => {}} onDelete={() => {}} />);
     expect(view.container.querySelectorAll('li.clip-item').length).toBe(3);
-    const groupToggles = view.container.querySelectorAll('button.group-toggle');
+    const groupToggles = view.container.querySelectorAll('.date-separator-content');
     expect(groupToggles.length).toBe(2);
     groupToggles[0] && fireEvent.click(groupToggles[0]);
   });
@@ -84,10 +84,10 @@ describe('ClipList – remove tag', () => {
     const view = render(<ClipList clips={[clip]} onCopy={() => {}} onDelete={() => {}} />);
     const removeBtn = within(view.container).getByLabelText(/Remove tag bar/i);
     fireEvent.click(removeBtn);
-    const mod = await import('../../../../services/clipService');
-    await waitFor(() => expect(mod.clipService.removeClipTag).toHaveBeenCalled());
+    const mod = await import('../../../../services/tags/tagsService');
+    await waitFor(() => expect(mod.tagsService.removeClipTag).toHaveBeenCalled());
     expect(within(view.container).queryByText('bar')).toBeNull();
-    expect(mod.clipService.removeClipTag).toHaveBeenCalledWith(11, 5);
+    expect(mod.tagsService.removeClipTag).toHaveBeenCalledWith(11, 5);
   });
 });
 

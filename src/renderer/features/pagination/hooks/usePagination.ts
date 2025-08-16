@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ClipModel, fromApi } from "../../../../models/clip";
-import { clipService } from "../../../../services/clipService";
+import { clipsService } from "../../../../services/clips/clipsService";
+import { searchService } from "../../../../services/search/searchService";
 
 interface UsePaginationProps {
   searchCSV: string;
@@ -46,7 +47,7 @@ export function usePagination({
         // Get filtered count first
         let cnt = 0;
         try {
-          cnt = await clipService.getNumFilteredClips(searchCSV, timeFrame, selectedTags, selectedApps, favoritesOnly);
+          cnt = await searchService.getNumFilteredClips(searchCSV, timeFrame, selectedTags, selectedApps, favoritesOnly);
           setFilteredCount(cnt);
           onCountsUpdate?.(totalCount, cnt);
         } catch (e) {
@@ -56,7 +57,7 @@ export function usePagination({
         setCountLoading(false);
 
         // Get filtered clips
-        const page = await clipService.filterNClips(searchCSV, timeFrame, pageSize, selectedTags, selectedApps, favoritesOnly);
+        const page = await searchService.filterNClips(searchCSV, timeFrame, pageSize, selectedTags, selectedApps, favoritesOnly);
         const mapped = page.map(fromApi);
         setClips(mapped);
         onClipsUpdate?.(mapped);
@@ -66,7 +67,7 @@ export function usePagination({
         // Get total count first
         let cnt = 0;
         try {
-          cnt = await clipService.getNumClips();
+          cnt = await clipsService.getNumClips();
           setTotalCount(cnt);
           onCountsUpdate?.(cnt, filteredCount);
         } catch (e) {
@@ -75,7 +76,7 @@ export function usePagination({
         }
 
         // Get recent clips
-        const page = await clipService.getRecentClips(pageSize);
+        const page = await clipsService.getRecentClips(pageSize);
         const mapped = page.map(fromApi);
         setClips(mapped);
         onClipsUpdate?.(mapped);
@@ -86,7 +87,7 @@ export function usePagination({
       // Fallback attempt
       console.error("First page load failed; attempting fallback", e);
       try {
-        const dto = await clipService.getAllClips();
+        const dto = await clipsService.getAllClips();
         const mapped = dto.map(fromApi);
         setClips(mapped);
         onClipsUpdate?.(mapped);
@@ -113,9 +114,9 @@ export function usePagination({
     try {
       let page;
       if (isFiltered) {
-        page = await clipService.filterNClipsBeforeId(searchCSV, timeFrame, pageSize, oldestId, selectedTags, selectedApps, favoritesOnly);
+        page = await searchService.filterNClipsBeforeId(searchCSV, timeFrame, pageSize, oldestId, selectedTags, selectedApps, favoritesOnly);
       } else {
-        page = await clipService.getNClipsBeforeId(pageSize, oldestId);
+        page = await clipsService.getNClipsBeforeId(pageSize, oldestId);
       }
 
       const mapped = page.map(fromApi);
@@ -173,7 +174,7 @@ export function usePagination({
     // Fire API call
     (async () => {
       try {
-        await clipService.deleteClip(id);
+        await clipsService.deleteClip(id);
         delete pendingDeletionRef.current[id];
       } catch (e) {
         console.error("Delete failed", e);

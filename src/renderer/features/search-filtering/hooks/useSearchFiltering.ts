@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { clipService } from "../../../../services/clipService";
+import { tagsService } from "../../../../services/tags/tagsService";
+import { appsService } from "../../../../services/apps/appsService";
 
 export type Range = "all" | "24h" | "week" | "month" | "3months" | "year";
 
@@ -62,8 +63,8 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
       (async () => {
         try {
           const [tagsResp, appsResp] = await Promise.all([
-            clipService.getAllTags().catch(() => []),
-            clipService.getAllFromApps().catch(() => []),
+            tagsService.getAllTags().catch(() => []),
+            appsService.getAllFromApps().catch(() => []),
           ]);
           if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
           if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
@@ -78,8 +79,8 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
       taxonomyLastFetched.current = now;
       try {
         const [tagsResp, appsResp] = await Promise.all([
-          clipService.getAllTags().catch(() => []),
-          clipService.getAllFromApps().catch(() => []),
+          tagsService.getAllTags().catch(() => []),
+          appsService.getAllFromApps().catch(() => []),
         ]);
         if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => t.name ?? t));
         if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());

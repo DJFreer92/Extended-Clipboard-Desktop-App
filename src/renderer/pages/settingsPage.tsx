@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { clipService } from "../../services/clipService";
+import { clipsService } from "../../services/clips/clipsService";
 import { useSettings, DeleteAllButton } from "../features";
 
 export default function SettingsPage() {
@@ -10,7 +10,7 @@ export default function SettingsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const cnt = await clipService.getNumClips();
+        const cnt = await clipsService.getNumClips();
         if (!cancelled) setHasHistory(cnt > 0);
       } catch {
         // Leave as true on error so the button isn't permanently disabled if API hiccups
@@ -31,7 +31,7 @@ export default function SettingsPage() {
   return (
     <section className="settings-page">
       <h2>Settings</h2>
-      
+
       <div className="settings-section">
         <h3>Data Management</h3>
         <div className="settings-item">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ClipModel } from "../../../../models/clip";
-import { clipService } from "../../../../services/clipService";
+import { favoritesService } from "../../../../services/favorites/favoritesService";
 
 export function useFavorites() {
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<number, boolean>>({});
@@ -13,9 +13,9 @@ export function useFavorites() {
 
     try {
       if (newFavoriteState) {
-        await clipService.addFavorite(clip.Id);
+        await favoritesService.addFavorite(clip.Id);
       } else {
-        await clipService.removeFavorite(clip.Id);
+        await favoritesService.removeFavorite(clip.Id);
       }
 
       // Clear optimistic update on success

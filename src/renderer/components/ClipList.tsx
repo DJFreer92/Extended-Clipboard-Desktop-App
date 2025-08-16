@@ -108,7 +108,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
   async function getTagId(tagName: string): Promise<number | undefined> {
     if (tagIdMap[tagName] != null) return tagIdMap[tagName];
     try {
-      const svc = (await import('../../services/clipService')).clipService;
+      const svc = (await import('../../services/tags/tagsService')).tagsService;
       const tags = await svc.getAllTags();
       const map: Record<string, number> = {};
       tags.forEach(t => { map[t.name] = t.id; });
@@ -139,7 +139,7 @@ export default function ClipList({ clips, onCopy, onDelete, onToggleFavorite, is
     try {
       const id = await resolveTagIdWithRetry(tagName);
       if (id == null) { console.warn('Tag id not found; skipping API call for removal of', tagName); return; }
-      const svc = (await import('../../services/clipService')).clipService;
+      const svc = (await import('../../services/tags/tagsService')).tagsService;
       await svc.removeClipTag(clip.Id, id);
     } catch (e) { console.error('Failed to remove tag', e); }
   }
@@ -408,7 +408,7 @@ function TagAddControl({ clip, onAdded, alwaysVisible }: { clip: ClipModel; onAd
     if (!name) { setValue(""); return; }
     if (clip.Tags && clip.Tags.includes(name)) { setValue(""); return; }
     try {
-      (await import('../../services/clipService')).clipService.addClipTag(clip.Id, name);
+      (await import('../../services/tags/tagsService')).tagsService.addClipTag(clip.Id, name);
       onAdded(name);
     } catch (e) { console.error('Failed to add tag', e); }
     setValue("");
