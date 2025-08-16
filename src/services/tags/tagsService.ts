@@ -2,6 +2,8 @@
 import { http } from '../shared/http';
 import type { ApiTag, ApiTags } from '../shared/types';
 
+interface TagCountResponse { count: number }
+
 export const tagsService = {
   async addClipTag(clipId: number, tagName: string): Promise<void> {
     await http<void>(`/clipboard/add_clip_tag?clip_id=${encodeURIComponent(clipId)}&tag_name=${encodeURIComponent(tagName)}`, { method: 'POST' });
@@ -17,9 +19,9 @@ export const tagsService = {
   },
 
   async getNumClipsPerTag(tagId: number): Promise<number> {
-    const res = await http<any>(`/clipboard/get_num_clips_per_tag?tag_id=${encodeURIComponent(tagId)}`);
+    const res = await http<TagCountResponse | number>(`/clipboard/get_num_clips_per_tag?tag_id=${encodeURIComponent(tagId)}`);
     if (typeof res === 'number') return res;
-    if (res && typeof res.count === 'number') return res.count;
+    if (res && typeof (res as TagCountResponse).count === 'number') return (res as TagCountResponse).count;
     return 0;
   },
 };

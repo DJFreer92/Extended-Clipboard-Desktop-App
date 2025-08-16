@@ -17,9 +17,10 @@ export const favoritesService = {
   },
 
   async getNumFavorites(): Promise<number> {
-    const res = await http<any>(`/clipboard/get_num_favorites`);
+    interface CountResponse { count: number }
+    const res = await http<CountResponse | number>(`/clipboard/get_num_favorites`);
     if (typeof res === 'number') return res;
-    if (res && typeof res.count === 'number') return res.count;
+    if (res && typeof (res as CountResponse).count === 'number') return (res as CountResponse).count;
     return 0;
   },
 };

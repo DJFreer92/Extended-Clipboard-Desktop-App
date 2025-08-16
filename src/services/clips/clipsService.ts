@@ -36,9 +36,10 @@ export const clipsService = {
   },
 
   async getNumClips(): Promise<number> {
-    const res = await http<any>(`/clipboard/get_num_clips`);
+    interface CountResponse { count: number }
+    const res = await http<CountResponse | number>(`/clipboard/get_num_clips`);
     if (typeof res === 'number') return res;
-    if (res && typeof res.count === 'number') return res.count;
+    if (res && typeof (res as CountResponse).count === 'number') return (res as CountResponse).count;
     return 0;
   },
 

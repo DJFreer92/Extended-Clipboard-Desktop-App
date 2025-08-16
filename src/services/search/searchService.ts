@@ -37,9 +37,10 @@ export const searchService = {
     const params = new URLSearchParams({ search, time_frame: timeFrame, favorites_only: favoritesOnly.toString() });
     if (selectedTags.length) selectedTags.forEach(t => params.append('selected_tags', t));
     if (selectedApps.length) selectedApps.forEach(a => params.append('selected_apps', a));
-    const res = await http<any>(`/clipboard/get_num_filtered_clips?${params}`);
+    interface CountResponse { count: number }
+    const res = await http<CountResponse | number>(`/clipboard/get_num_filtered_clips?${params}`);
     if (typeof res === 'number') return res;
-    if (res && typeof res.count === 'number') return res.count;
+    if (res && typeof (res as CountResponse).count === 'number') return (res as CountResponse).count;
     return 0;
   },
 };
