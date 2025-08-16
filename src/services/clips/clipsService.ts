@@ -1,14 +1,16 @@
 import { http } from '../shared/http';
-import type { ApiClip } from '../shared/types';
+import type { ApiClip, ApiClips } from '../shared/types';
 
 export const clipsService = {
   // Basic CRUD operations for clips
   async getRecentClips(n: number): Promise<ApiClip[]> {
-    return await http<ApiClip[]>(`/clipboard/get_recent_clips?n=${n}`);
+    const response = await http<ApiClips>(`/clipboard/get_recent_clips?n=${n}`);
+    return response.clips || [];
   },
 
   async getAllClips(): Promise<ApiClip[]> {
-    return await http<ApiClip[]>(`/clipboard/get_all_clips`);
+    const response = await http<ApiClips>(`/clipboard/get_all_clips`);
+    return response.clips || [];
   },
 
   async addClip(content: string, fromAppName?: string): Promise<void> {
@@ -45,13 +47,15 @@ export const clipsService = {
 
   // Pagination methods
   async getAllClipsAfterId(afterId: number): Promise<ApiClip[]> {
-    return await http<ApiClip[]>(`/clipboard/get_all_clips_after_id?after_id=${afterId}`);
+    const response = await http<ApiClips>(`/clipboard/get_all_clips_after_id?after_id=${afterId}`);
+    return response.clips || [];
   },
 
   async getNClipsBeforeId(n: number | null, beforeId: number): Promise<ApiClip[]> {
     const params = new URLSearchParams();
     if (n !== null) params.append('n', n.toString());
     params.append('before_id', beforeId.toString());
-    return await http<ApiClip[]>(`/clipboard/get_n_clips_before_id?${params}`);
+    const response = await http<ApiClips>(`/clipboard/get_n_clips_before_id?${params}`);
+    return response.clips || [];
   },
 };

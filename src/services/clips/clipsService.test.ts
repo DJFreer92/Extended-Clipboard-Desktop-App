@@ -10,7 +10,7 @@ describe('clipsService', () => {
 
   it('getRecentClips should call correct endpoint with limit', async () => {
     const mockClips = [{ id: 1, content: 'test' }];
-    (globalThis.fetch as any).mockResolvedValueOnce(okJson(mockClips));
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ clips: mockClips }));
 
     const result = await clipsService.getRecentClips(5);
 
@@ -27,7 +27,7 @@ describe('clipsService', () => {
 
   it('getAllClips should call correct endpoint', async () => {
     const mockClips = [{ id: 1, content: 'test' }];
-    (globalThis.fetch as any).mockResolvedValueOnce(okJson(mockClips));
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ clips: mockClips }));
 
     const result = await clipsService.getAllClips();
 
@@ -114,7 +114,7 @@ describe('clipsService', () => {
 
   it('getAllClipsAfterId should call correct endpoint with afterId', async () => {
     const mockClips = [{ id: 2, content: 'newer' }];
-    (globalThis.fetch as any).mockResolvedValueOnce(okJson(mockClips));
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ clips: mockClips }));
 
     const result = await clipsService.getAllClipsAfterId(1);
 
@@ -131,7 +131,7 @@ describe('clipsService', () => {
 
   it('getNClipsBeforeId should call correct endpoint with beforeId and n', async () => {
     const mockClips = [{ id: 1, content: 'older' }];
-    (globalThis.fetch as any).mockResolvedValueOnce(okJson(mockClips));
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ clips: mockClips }));
 
     const result = await clipsService.getNClipsBeforeId(5, 10);
 
@@ -148,7 +148,7 @@ describe('clipsService', () => {
 
   it('getNClipsBeforeId should handle null n parameter', async () => {
     const mockClips = [{ id: 1, content: 'older' }];
-    (globalThis.fetch as any).mockResolvedValueOnce(okJson(mockClips));
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ clips: mockClips }));
 
     const result = await clipsService.getNClipsBeforeId(null, 10);
 
@@ -166,7 +166,7 @@ describe('clipsService', () => {
   it('should handle combined CRUD operations correctly', async () => {
     (globalThis.fetch as any)
       .mockResolvedValueOnce(okJson({ ok: true }))
-      .mockResolvedValueOnce(okJson([{ id: 1, content: 'test' }]))
+      .mockResolvedValueOnce(okJson({ clips: [{ id: 1, content: 'test' }] }))
       .mockResolvedValueOnce(okJson({ count: 1 }))
       .mockResolvedValueOnce(okJson({ ok: true }));
 

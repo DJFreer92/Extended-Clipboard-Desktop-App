@@ -77,7 +77,10 @@ export function usePagination({
 
         // Get recent clips
         const page = await clipsService.getRecentClips(pageSize);
-        const mapped = page.map(fromApi);
+
+        // Defensive check: ensure page is an array
+        const pageArray = Array.isArray(page) ? page : [];
+        const mapped = pageArray.map(fromApi);
         setClips(mapped);
         onClipsUpdate?.(mapped);
         setHasMore(mapped.length > 0 && (mapped.length < cnt ? true : mapped.length === pageSize));
@@ -88,7 +91,10 @@ export function usePagination({
       console.error("First page load failed; attempting fallback", e);
       try {
         const dto = await clipsService.getAllClips();
-        const mapped = dto.map(fromApi);
+
+        // Defensive check: ensure dto is an array
+        const dtoArray = Array.isArray(dto) ? dto : [];
+        const mapped = dtoArray.map(fromApi);
         setClips(mapped);
         onClipsUpdate?.(mapped);
         setHasMore(false);
