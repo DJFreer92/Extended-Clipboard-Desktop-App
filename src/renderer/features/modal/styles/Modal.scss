@@ -1,0 +1,197 @@
+/* Modal component styles */
+
+/* Modal overlay and container */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px) saturate(120%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  width: min(800px,90vw);
+  max-height: min(80vh,800px);
+  background: linear-gradient(180deg,var(--panel),var(--panel-2));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Modal header */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  min-height: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header.modal-header-stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.modal-header-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-header-top .close-btn {
+  margin-left: auto;
+}
+
+.modal-date-meta {
+  margin-left: 8px;
+  color: var(--muted);
+  font-weight: 400;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.modal-tags-row .badge {
+  opacity: .9;
+}
+
+.modal-tags-row .badge-add {
+  opacity: .7;
+}
+
+.modal-tags-row .badge-add:hover {
+  opacity: 1;
+}
+
+.modal-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* Modal body and content */
+.modal-body {
+  padding: 12px;
+  color: var(--text);
+  max-height: calc(min(80vh,800px) - 48px);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 160px;
+}
+
+.modal-body.with-actions {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  max-height: calc(min(80vh,800px) - 48px);
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 8px;
+  align-self: flex-start;
+}
+
+.modal-actions.right {
+  margin-left: auto;
+}
+
+.modal-content {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding-right: 4px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 100%;
+}
+
+/* Modal floating delete button */
+.modal-delete-floating {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 20;
+  backdrop-filter: blur(4px) saturate(140%);
+  background: rgba(18,24,40,0.75);
+  border: 1px solid var(--border);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px -2px rgba(0,0,0,0.5);
+}
+
+.modal-delete-floating:hover {
+  background: rgba(255,64,64,0.18);
+  border-color: #ff4040;
+}
+
+.modal-delete-floating.delete-btn:hover {
+  background: var(--danger);
+  color: #0d1220;
+  border-color: transparent;
+}
+
+/* Modal favorite button styles */
+.modal-fav-btn {
+  transition: opacity .12s ease, background .12s ease, border-color .12s ease;
+  background: transparent;
+  border-radius: 6px;
+  margin-left: 2px;
+  margin-right: 8px !important;
+}
+
+.modal-fav-btn:hover, .modal-fav-btn:focus-visible {
+  background: var(--favorite-hover-bg);
+  opacity: 1;
+}
+
+.modal-fav-btn.active {
+  background: transparent;
+}
+
+.modal-fav-btn.active:hover,
+.modal-fav-btn.active:focus-visible {
+  background: var(--favorite-hover-bg);
+  opacity: 1;
+}
+
+.modal-fav-btn:not(.active):hover, .modal-fav-btn:not(.active):focus-visible {
+  background: var(--favorite-icon-bg);
+}
+
+.modal-fav-btn:not(.active):hover .icon-star_filled,
+.modal-fav-btn:not(.active):focus-visible .icon-star_filled {
+  background: var(--favorite-icon-white) !important;
+}
+
+/* Floating button visibility */
+.clip-item:hover .floating-delete-btn, .clip-item:hover .expand-btn {
+  opacity: .85;
+}
+
+.floating-delete-btn:hover, .floating-delete-btn:focus-visible, .expand-btn:hover, .expand-btn:focus-visible {
+  opacity: 1;
+}

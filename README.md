@@ -1,155 +1,332 @@
 # Extended Clipboard Desktop App
 
-An Electron + React (Vite + TypeScript) desktop client for the Extended Clipboard API. It monitors your system clipboard, saves new clips to the server, and lets you browse, search, filter, copy, and delete saved clips. Background monitoring continues even when the app window is unfocused.
+A modern Electron + React desktop client for the Extended Clipboard API. This app provides intelligent clipboard management by automatically monitoring your system clipboard, saving clips to the server, and offering powerful tools to browse, search, filter, and organize your clipboard history. Background monitoring continues seamlessly even when the app window is unfocused.
 
-## Features
+[Extended Clipboard API repository](https://github.com/DJFreer92/Extended-Clipboard-API)
 
-- Background clipboard monitoring (polls every 1.5s) and saves new text clips
-- Fast UI with React 19 + Vite
-- Search and time-range filters with live counts
-- Infinite scrolling/pagination
-- Copy-to-clipboard with robust fallbacks
-- Delete single or all clips
+## ✨ Features
 
-## Quick start
+### Core Functionality
 
-Prerequisites:
+- **Smart Background Monitoring**: Polls system clipboard every 1.5s and automatically saves new text clips
+- **React 19 + Vite**: Lightning-fast UI with modern React features and hot module replacement
+- **Advanced Search & Filtering**: Full-text search with real-time results and smart filtering
+- **Infinite Scrolling**: Smooth pagination with responsive grid layout
+- **Intelligent Duplicate Handling**: Prevents duplicates
 
-- Node.js 18+ (LTS recommended)
-- The Extended Clipboard API running locally or remotely
+### Organization & Management
 
-1. Install dependencies
+- **Favorites System**: Mark important clips as favorites for quick access
+- **Tag Management**: Add custom tags to clips for better organization
+- **App-based Filtering**: Filter clips by the application they originated from
+- **Time-range Filtering**: Browse clips by date (24h, week, month, 3 months, year, or all time)
+- **Bulk Operations**: Delete entire date sections or all clips at once
+
+### User Experience
+
+- **Multi-column Layout**: Responsive grid that adapts to window size
+- **Date-grouped Display**: Clips organized by date with collapsible sections
+- **One-click Copy**: Click any clip to copy it to your clipboard instantly
+- **Visual Feedback**: Indicators and smooth animations
+- **Keyboard Navigation**: Full keyboard accessibility support
+- **Cross-platform Clipboard**: Fallback support for web clipboard API
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Node.js 18+** (LTS recommended)
+- **Extended Clipboard API** running locally or remotely — [DJFreer92/Extended-Clipboard-API](https://github.com/DJFreer92/Extended-Clipboard-API)
+
+### Installation & Setup
+
+1. **Install dependencies**
 
 ```bash
 npm install
 ```
 
-1. Configure API base URL (optional in dev)
+1. **Configure API connection (optional)**
 
-Create a `.env.local` (or `.env`) in the project root if your API isn’t on the same origin:
+Create `.env.local` in the project root if your API isn't running on the default localhost:8000:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
-Notes:
+> **Note**: In development, the app uses Vite's proxy to avoid CORS issues. Only set `VITE_API_BASE_URL` if your API runs on a different origin.
 
-- In development, the app uses relative URLs by default. If your API is on a different origin, set `VITE_API_BASE_URL` to avoid CORS issues.
-
-1. Run the app in development
+1. **Start development server**
 
 ```bash
 npm run dev
 ```
 
-This starts:
+This command starts:
 
-- TypeScript watch for the Electron main process
-- Vite dev server for the renderer (default <http://localhost:5174>)
-- Electron in development mode with auto-reload
+- TypeScript compiler in watch mode for the Electron main process
+- Vite dev server for the React renderer (localhost:5174)
+- Electron application with auto-reload on changes
 
-1. Build for production
+1. **Build for production**
 
 ```bash
 npm run build
 npm start
 ```
 
-This compiles the Electron main process and the Vite renderer into `dist/`, then launches Electron against the built assets.
+This compiles both the Electron main process and React renderer to `dist/`, then launches the production build.
 
-## Scripts
+## 📜 Available Scripts
 
-- `npm run dev` — Start main TS watcher, Vite dev server, and Electron with reload
-- `npm run build` — Build Electron main and Vite renderer to `dist/`
-- `npm start` — Start Electron using the built output
-- `npm test` — Run unit tests (Vitest)
-- `npm run test:watch` — Watch mode tests
-- `npm run coverage` — Run tests with coverage report
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development environment (TypeScript watcher + Vite dev server + Electron with auto-reload) |
+| `npm run build` | Build both Electron main process and React renderer for production |
+| `npm start` | Launch the built production application |
+| `npm test` | Run unit tests with Vitest |
+| `npm run test:watch` | Run tests in watch mode for development |
+| `npm run coverage` | Generate test coverage report |
+| `npm run build:main` | Build only the Electron main process |
+| `npm run watch:main` | Watch and rebuild the main process on changes |
+| `npm run dev:renderer` | Start only the Vite dev server for the renderer |
 
-## Configuration
+## ⚙️ Configuration
 
-- `VITE_API_BASE_URL` (optional): Absolute base URL for the API in production or when not using a dev proxy. Example: `http://localhost:8000`.
+### Environment Variables
 
-Clipboard polling interval: 1.5s in both the main process (background) and the renderer’s fallback poller (disabled when background mode is active).
+- **`VITE_API_BASE_URL`** (optional): Set this to your API's base URL when it's not running on the same origin as the development server. Example: `http://localhost:8000`
 
-## Architecture overview
+### Application Settings
 
-Top-level folders:
+- **Clipboard Polling Interval**: 1.5 seconds (both main process background monitoring and renderer fallback)
+- **Development Port**: 5174 (Vite dev server)
+- **Auto-reload**: Enabled in development mode with electronmon
+
+## 🏗️ Architecture Overview
+
+The application follows a modern, modular architecture with clear separation of concerns:
 
 ```text
 src/
-  main/       # Electron main process (background clipboard polling, IPC)
-  renderer/   # React app (Home & Settings, lists, search, filters)
-  services/   # API client (clipService)
-  models/     # Data models and mappers
+├── main/           # Electron main process
+│   ├── main.ts       # App lifecycle, window management, clipboard polling
+│   ├── preload.ts    # Secure IPC bridge between main and renderer
+│   └── config.ts     # Configuration utilities
+├── renderer/       # React application
+│   ├── index.tsx     # App entry point and routing
+│   ├── components/   # Reusable UI components
+│   ├── features/     # Feature-based modules
+│   │   ├── search-filtering/    # Search and filter functionality
+│   │   ├── pagination/          # Infinite scroll pagination
+│   │   ├── clipboard-management/ # Clipboard operations
+│   │   ├── settings/            # Application settings
+│   │   ├── clip-list/           # Clip display and interactions
+│   │   ├── dates/               # Date handling and formatting
+│   │   ├── grouping/            # Data grouping utilities
+│   │   └── modal/               # Modal dialogs
+│   ├── pages/        # Main application pages
+│   ├── hooks/        # Custom React hooks
+│   ├── styles/       # SCSS modules and design tokens
+│   └── utils/        # Utility functions
+├── services/       # API client and external services
+├── models/         # Data models and type definitions
+└── assets/         # Static assets (icons, images)
 ```
 
-### Main process (`src/main/main.ts`)
+### Core Components
 
-- Polls the system clipboard using Electron’s `clipboard` API every 1.5s
-- Emits `clipboard:new` IPC event with `{ text }` when the clipboard changes
-- Handles `clipboard:isBackgroundActive` to inform the renderer that background monitoring is running
-- Creates the BrowserWindow and loads the Vite dev server (dev) or built `index.html` (prod)
+#### **Main Process** (`src/main/main.ts`)
 
-### Preload (`src/main/preload.ts`)
+- Manages application lifecycle and window creation
+- Implements background clipboard monitoring using Electron's clipboard API
+- Detects frontmost application name (macOS support)
+- Handles secure IPC communication with the renderer
+- Sets application identity and dock/taskbar icons
 
-Exposes a minimal, safe API on `window.electronAPI`:
+#### **Preload Script** (`src/main/preload.ts`)
 
-- `clipboard.readText()` / `clipboard.writeText(text)`
-- `background.isActive()` — resolves to `true` when main is polling in the background
-- `background.onNew(cb)` — subscribe to background clipboard events
+Exposes a minimal, secure API to the renderer via `window.electronAPI`:
 
-### Renderer (`src/renderer`)
+- `clipboard.readText()` / `clipboard.writeText(text)` — Direct system clipboard access
+- `background.isActive()` — Check if background monitoring is running
+- `background.onNew(callback)` — Subscribe to clipboard change events
+- `app.getName()` — Get application name
+- `frontmostApp.getName()` — Get frontmost application name (macOS)
 
-React 19 app with:
+#### **React Renderer** (`src/renderer/`)
 
-- Home page for browsing/searching/filtering clips with infinite scroll
-- Settings page for destructive actions (delete all)
-- Background-aware behavior: when main background is active, the local poller is disabled and the renderer listens to `clipboard:new`; after adding a clip to the API, the first page is reloaded (filtered or unfiltered, depending on current view)
+Modern React 19 application featuring:
 
-### API client (`src/services/clipService.ts`)
+- **Home Page**: Main interface with clip browsing, search, and filtering
+- **Settings Page**: Application preferences and bulk operations
+- **Feature Modules**: Organized by functionality (search, pagination, clipboard management, etc.)
+- **Responsive Design**: Multi-column layout that adapts to window size
+- **Background Integration**: Seamless handoff between main process and renderer clipboard polling
 
-Lightweight fetch wrapper using optional `VITE_API_BASE_URL`. Implements endpoints such as:
+#### **Modular Services** (`src/services/`)
 
-- `GET /clipboard/get_recent_clips?n=`
-- `GET /clipboard/get_all_clips`
-- `POST /clipboard/add_clip`
-- `POST /clipboard/delete_clip?id=`
-- `POST /clipboard/delete_all_clips`
-- `GET /clipboard/get_all_clips_after_id?after_id=`
-- `GET /clipboard/get_n_clips_before_id?n=&before_id=`
-- Filtered variants: `filter_all_clips`, `filter_n_clips`, `filter_all_clips_after_id`, `filter_n_clips_before_id`, and `get_num_filtered_clips`
+Organized REST clients for different API domains:
 
-## Testing
+- **Clips Service**: Core clipboard operations (get, add, delete clips)
+- **Search Service**: Filtering and search functionality
+- **Tags Service**: Tag management and clip-tag associations
+- **Favorites Service**: Favorite clip operations
+- **Apps Service**: Application-specific filtering
 
-Run the suite:
+- Full CRUD operations for clips
+- Advanced filtering (search, tags, apps, time ranges)
+- Pagination support with before/after cursors
+- Favorites management
+- Tag system with full CRUD operations
+
+## 🎯 Key Behaviors
+
+### Clipboard Management
+
+- **Click-to-Copy**: Click any clip item to instantly copy it to your clipboard
+- **Smart Indicators**: "Copied!" feedback persists through UI changes but clears on external clipboard activity
+- **Duplicate Prevention**: Prevents duplicates
+- **Background Sync**: When main process monitoring is active, renderer polling is disabled for efficiency
+
+### Search & Filtering
+
+- **Real-time Search**: Instant results as you type with full-text matching
+- **Multi-filter Support**: Combine search terms, tags, apps, time ranges, and favorites
+- **Server-side Processing**: All filtering is handled by the API for optimal performance
+- **Live Count Updates**: Result counts update dynamically as filters change
+
+### UI Interactions
+
+- **Responsive Grid**: Multi-column layout adapts to window size (minimum 350px per column)
+- **Date Grouping**: Clips automatically grouped by date with collapsible sections
+- **Infinite Scroll**: Smooth pagination loads more content as you scroll
+- **Keyboard Accessible**: Full keyboard navigation and screen reader support
+
+## 🎨 Design System
+
+### Color Tokens
+
+The app uses a comprehensive set of CSS custom properties for consistent theming:
+
+- **Surface Colors**: `--color-bg`, `--color-surface`, `--color-panel`
+- **Text Colors**: `--color-text`, `--color-muted`, `--color-selected`
+- **Interactive Colors**: `--color-brand`, `--color-danger`, `--color-success`
+- **Control States**: `--control-bg`, `--hover-bg`, `--hover-border-neutral`
+
+### Interaction Patterns
+
+- **Neutral Controls**: Search inputs, dropdowns, icon buttons use subtle hover states
+- **Primary Actions**: Copy buttons use brand color with high contrast text
+- **Destructive Actions**: Delete buttons use danger color with appropriate warnings
+- **Focus Management**: Consistent focus rings (`--ring`) for keyboard navigation
+
+## 🧪 Testing
+
+The project maintains 85+% test coverage across services, models, and UI components.
+
+### Running Tests
 
 ```bash
+# Run all tests
 npm test
-```
 
-With coverage:
+# Watch mode for development
+npm run test:watch
 
-```bash
+# Generate coverage report
 npm run coverage
 ```
 
-The tests cover services, models, and UI components.
+### Test Stack
 
-## Troubleshooting
+- **Vitest**: Fast unit test runner with TypeScript support
+- **React Testing Library**: Component testing with user-centric queries
+- **JSDOM**: Browser environment simulation
+- **Mock Service Worker**: API mocking for integration tests
 
-- API connection/CORS errors in dev: set `VITE_API_BASE_URL` to your API origin in `.env.local`.
-- Port conflicts: Vite defaults to 5174. Stop other processes or change the port in `package.json` → `dev:renderer`.
-- Background monitoring not working: ensure the app reached `whenReady` and no errors appear in the main process logs. The renderer should report background active and avoid its own poller.
-- Clipboard access: Electron APIs are used via preload; web clipboard fallbacks require a secure context and may be restricted by the OS.
+## 🛠️ Troubleshooting
 
-## Contributing
+### Common Issues
 
-1. Fork and create a feature branch
-2. Make changes with tests where applicable
-3. Run `npm test` and ensure coverage stays healthy
-4. Open a pull request describing the change
+#### API Connection Errors
 
-## License
+- Ensure the Extended Clipboard API is running
+- Set `VITE_API_BASE_URL` in `.env.local` if API is on different origin
+- Check network connectivity and firewall settings
 
-See [LICENSE](./LICENSE).
+#### Port Conflicts
+
+- Default Vite port is 5174
+- Stop conflicting processes or modify port in `package.json`
+- Use `lsof -i :5174` to identify processes using the port
+
+#### Background Monitoring Issues
+
+- Verify app has reached Electron's `whenReady` state
+- Check main process logs for errors
+- Ensure renderer reports "Background active: true"
+
+#### Clipboard Access Problems
+
+- Electron APIs require secure context
+- Web clipboard fallbacks may be restricted by OS
+- Check browser permissions and security settings
+
+### Development Tips
+
+- Use `npm run dev` for auto-reload during development
+- Check browser DevTools Console for renderer errors
+- Monitor Electron main process output for IPC issues
+- Use VS Code's TypeScript integration for better development experience
+
+## 📦 Building & Distribution
+
+### Development Build
+
+```bash
+npm run build
+```
+
+Compiles TypeScript to `dist/main/` and builds React app to `dist/`.
+
+### Production Considerations
+
+- App name and icon are set at runtime
+- For installers, configure electron-builder with platform-specific icons
+- Consider code signing for distribution
+- Test on target platforms before release
+
+## 🤝 Contributing
+
+We welcome contributions! Please follow these guidelines:
+
+1. **Fork** the repository and create a feature branch
+2. **Write tests** for new functionality
+3. **Maintain coverage** - ensure all tests pass and coverage stays at 100%
+4. **Follow conventions** - use existing code style and patterns
+5. **Update documentation** - modify README if needed
+6. **Submit PR** with clear description of changes
+
+### Development Workflow
+
+```bash
+# Clone your fork
+git clone https://github.com/yourusername/Extended-Clipboard-Desktop-App.git
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Run tests
+npm test
+
+# Build for production
+npm run build
+```
+
+## 📄 License
+
+This project is licensed under the terms specified in [LICENSE](./LICENSE).

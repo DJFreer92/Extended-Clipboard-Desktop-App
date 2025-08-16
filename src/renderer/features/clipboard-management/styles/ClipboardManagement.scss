@@ -1,0 +1,308 @@
+/* Clipboard Management feature styles */
+
+/* Copy feedback notifications */
+.copy-feedback {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--success);
+  color: #0d1220;
+  padding: 8px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  animation: slideInRight 0.3s ease;
+}
+
+.copy-feedback.error {
+  background: var(--danger);
+  color: #0d1220;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Favorite button functionality */
+.favorite-toggle {
+  transition: all 0.2s ease;
+}
+
+.favorite-toggle:hover {
+  transform: scale(1.1);
+}
+
+.favorite-toggle.is-favorite {
+  color: var(--brand);
+}
+
+/* Favorite button styles from cliplist.scss */
+.favorite-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 3px;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: .55;
+  transition: opacity .12s ease, background .12s ease;
+}
+
+.clip-item:hover .favorite-btn:not(.active) {
+  opacity: .85;
+}
+
+.favorite-btn:hover, .favorite-btn:focus-visible, .favorite-btn.active {
+  opacity: 1;
+}
+
+.favorite-btn .icon {
+  width: 26px;
+  height: 26px;
+  background: #59616b;
+  transition: background .12s ease, opacity .12s ease;
+}
+
+.favorite-btn.active .icon {
+  background: #facc15;
+}
+
+.favorite-btn:not(.active):hover .icon {
+  background: #6a7480;
+}
+
+/* Favorite button hover effect for consistency */
+.clip-item .favorite-btn {
+  transition: opacity .12s ease, background .12s ease, border-color .12s ease;
+  background: transparent;
+  border-radius: 6px;
+}
+
+.clip-item .favorite-btn:hover, .clip-item .favorite-btn:focus-visible {
+  background: var(--favorite-hover-bg);
+  opacity: 1;
+}
+
+.clip-item .favorite-btn.active {
+  background: transparent;
+}
+
+.clip-item .favorite-btn.active:hover,
+.clip-item .favorite-btn.active:focus-visible {
+  background: var(--favorite-hover-bg);
+  opacity: 1;
+}
+
+.clip-item .favorite-btn:not(.active):hover, .clip-item .favorite-btn:not(.active):focus-visible {
+  background: var(--favorite-icon-bg);
+}
+
+.clip-item .favorite-btn:not(.active):hover .icon-star_filled,
+.clip-item .favorite-btn:not(.active):focus-visible .icon-star_filled {
+  background: var(--favorite-icon-white) !important;
+}
+
+/* Button styles for clipboard actions */
+.icon-button {
+  appearance: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  background: var(--control-bg);
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease;
+}
+
+.icon-button:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-border-neutral);
+}
+
+.icon-button:active {
+  transform: translateY(.5px);
+}
+
+.icon-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.copy-btn {
+  color: var(--brand);
+}
+
+.delete-btn {
+  color: var(--danger);
+}
+
+.copy-btn:hover {
+  background: var(--brand);
+  color: #0d1220;
+  border-color: transparent;
+}
+
+.delete-btn:hover {
+  background: var(--danger);
+  color: #0d1220;
+  border-color: transparent;
+}
+
+.settings-btn {
+  color: var(--text);
+}
+
+.settings-btn:hover {
+  background: var(--hover-bg);
+  border-color: var(--hover-border-neutral);
+}
+
+.fav-filter-btn, .refresh-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fav-filter-btn .icon {
+  width: 24px;
+  height: 24px;
+}
+
+.refresh-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Floating action buttons */
+.expand-btn, .floating-delete-btn {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: opacity .12s ease, color .12s ease, background .12s ease;
+}
+
+.expand-btn {
+  top: -14px;
+  right: -14px;
+  color: var(--brand);
+}
+
+.expand-btn .icon {
+  width: 23px;
+  height: 23px;
+}
+
+.expand-btn:hover {
+  color: #8cbcff;
+  background: rgba(108, 162, 255, 0.12);
+}
+
+.floating-delete-btn {
+  bottom: -14px;
+  right: -14px;
+  color: var(--danger);
+}
+
+.floating-delete-btn .icon {
+  width: 23px;
+  height: 23px;
+}
+
+.floating-delete-btn:hover {
+  color: var(--danger-dark);
+  background: rgba(255, 64, 64, 0.12);
+}
+
+.expand-btn:focus-visible, .floating-delete-btn:focus-visible {
+  opacity: 1;
+}
+
+/* Expand button icon hover color */
+.expand-btn:hover .icon-expand,
+.expand-btn:focus-visible .icon-expand {
+  background: var(--expand-icon-hover-bg, #3b82f6); /* fallback to bright blue */
+  color: #fff;
+}
+
+/* Tag removal functionality */
+.tag-removable {
+  position: relative;
+  overflow: visible;
+}
+
+.tag-remove-btn {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(24,30,44,0.55);
+  border: 1px solid rgba(248,113,113,0.5);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  padding: 0;
+  pointer-events: none;
+  transition: opacity .12s ease, background .12s ease, border-color .12s ease, color .12s ease, transform .12s ease;
+  z-index: 2;
+  color: var(--danger);
+  backdrop-filter: blur(2px);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.35);
+}
+
+.tag-remove-btn .icon {
+  width: 10px;
+  height: 10px;
+  opacity: .9;
+}
+
+.tag-remove-btn:hover .icon {
+  opacity: 1;
+}
+
+.tag-removable:hover .tag-remove-btn, .tag-remove-btn:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.tag-remove-btn:hover {
+  background: rgba(248,113,113,0.18);
+  border-color: rgba(248,113,113,0.85);
+}
+
+.tag-remove-btn:active {
+  transform: translateY(calc(-50% + 0.5px)) scale(.95);
+}

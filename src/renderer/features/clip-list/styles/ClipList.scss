@@ -1,0 +1,258 @@
+/* ClipList feature styles - layout and presentation */
+
+/* Clip list & items layout */
+.clip-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  column-gap: 10px;
+  row-gap: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(350px,1fr));
+}
+
+.clip-item {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 21px 14px 10px;
+  background: linear-gradient(180deg,var(--panel),var(--panel-2));
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+  min-width: 0;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+}
+
+.clip-item.is-tags-expanded {
+  grid-template-columns: 32px 1fr auto;
+  grid-auto-rows: auto;
+  padding-bottom: 14px;
+}
+
+.clip-item.is-tags-expanded .clip-tags-row {
+  grid-column: 2 / span 2;
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.clip-item.is-tags-expanded .clip-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clip-copy-btn {
+  appearance: none;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+}
+
+.clip-copy-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+  border-radius: 6px;
+}
+
+.clip-item[data-time]:hover::after {
+  content: attr(data-time);
+  position: absolute;
+  top: -28px;
+  background: #232b3a;
+  color: var(--text);
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 1;
+  transition: opacity .15s;
+  right: 21px;
+}
+
+.clip-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--hover-border-neutral);
+  box-shadow: 0 12px 35px rgba(0,0,0,0.5);
+}
+
+.clip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.clip-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.clip-item .icon-button {
+  transition: opacity .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.clip-item .floating-delete-btn, .clip-item .expand-btn {
+  opacity: 0;
+}
+
+.clip-right-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.clips-container.is-empty {
+  padding-top: 16px;
+}
+
+.clip-item-empty {
+  pointer-events: none;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  visibility: hidden;
+}
+
+/* Badge styles */
+.badge {
+  font-size: 10px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: transparent;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+  opacity: .85;
+}
+
+.badge-app {
+  color: #39d98a;
+}
+
+.badge-tag {
+  color: #5aa9ff;
+}
+
+.badge-app:hover, .badge-tag:hover, .badge-add:hover {
+  opacity: 1;
+}
+
+.badge-add {
+  opacity: .45;
+  transition: opacity .12s ease, background .12s ease, border-color .12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  cursor: pointer;
+  padding: 4px 9px;
+  min-width: 24px;
+  border-style: dotted;
+  border-width: 1px;
+  border-color: #5aa9ff;
+  background: transparent;
+}
+
+.clip-item:hover .badge-add {
+  opacity: .75;
+}
+
+.badge-add.always {
+  opacity: .75;
+}
+
+.badge-add:hover, .clip-item:hover .badge-add:hover {
+  opacity: 1;
+}
+
+.badge-add .icon {
+  width: 10px;
+  height: 10px;
+}
+
+.badge-tag-input {
+  background: #1d2636 !important;
+  color: var(--text) !important;
+  min-width: 70px;
+}
+
+.badge-tag-input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+
+.badge-ellipsis {
+  cursor: pointer;
+  background: rgba(255,255,255,0.06);
+}
+
+.badge-ellipsis:hover {
+  background: rgba(255,255,255,0.12);
+}
+
+.copied-indicator {
+  color: #39d98a;
+  font-size: 14px;
+  font-weight: 600;
+  margin-right: 6px;
+  display: inline-block;
+}
+
+.clip-tags-row .badge {
+  opacity: .9;
+}
+
+.clip-tags-row .badge-add {
+  opacity: .6;
+}
+
+.clip-tags-row .badge-add:hover {
+  opacity: 1;
+}
+
+/* Enhanced tag interaction fixes */
+/* Reserve space at row level instead of individual tags to prevent layout shifts */
+.clip-right-meta {
+  padding-right: 20px; /* Reserve space for delete button at row level */
+}
+
+.clip-tags-row {
+  padding-right: 20px; /* Reserve space for delete button in expanded tag rows */
+}
+
+.tag-removable {
+  /* Remove individual tag padding - space is now reserved at row level */
+  padding-right: 6px !important;
+}
+
+.tag-removable:hover {
+  /* Extend padding only when hovering to accommodate delete button */
+  padding-right: 24px !important;
+}
+
+.tag-removable:focus-within {
+  /* Extend padding when focused to accommodate delete button */
+  padding-right: 24px !important;
+}

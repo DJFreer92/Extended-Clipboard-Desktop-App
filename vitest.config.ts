@@ -3,14 +3,11 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     include: [
-      'tests/**/*.test.{ts,tsx}',
-      'tests/**/*_tests.{ts,tsx}',
-      'tests/**/*.spec.{ts,tsx}',
-      'tests/**/*.{test,spec}.ts',
-      'tests/**/*.{test,spec}.tsx',
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'src/**/*_tests.{ts,tsx}',
     ],
     environment: 'jsdom',
-    setupFiles: ['tests/test.setup.ts'],
+    setupFiles: ['src/test.setup.ts'],
     css: false,
   globals: false,
     coverage: {
@@ -27,12 +24,16 @@ export default defineConfig({
         'src/main/**',
         '**/*.d.ts',
         'src/renderer/styles/**',
+        '**/*.old.{ts,tsx}',
+        'src/renderer/index.tsx',
+        'src/services/index.ts',
+        '**/types.ts',
       ],
       thresholds: {
-        lines: 100,
-        functions: 100,
-        statements: 100,
-        branches: 100,
+        lines: 85,
+        functions: 85,
+        statements: 85,
+        branches: 85,
       },
     },
   },

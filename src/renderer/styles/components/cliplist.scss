@@ -1,0 +1,172 @@
+/* Clip list & items */
+.clip-list { list-style: none; padding: 0; margin: 0; display: grid; column-gap: 10px; row-gap: 32px; grid-template-columns: repeat(auto-fit, minmax(350px,1fr)); }
+.clip-item { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 6px; padding: 14px 21px 14px 10px; background: linear-gradient(180deg,var(--panel),var(--panel-2)); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease; min-width: 0; position: relative; cursor: pointer; user-select: none; }
+.clip-item.is-tags-expanded { grid-template-columns: 32px 1fr auto; grid-auto-rows: auto; padding-bottom: 14px; }
+.clip-item.is-tags-expanded .clip-tags-row { grid-column: 2 / span 2; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.clip-item.is-tags-expanded .clip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clip-copy-btn { appearance: none; border: none; background: transparent; text-align: left; padding: 0; font: inherit; color: var(--text); cursor: pointer; width: 100%; }
+.clip-copy-btn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); border-radius: 6px; }
+.clip-item[data-time]:hover::after { content: attr(data-time); position: absolute; top: -28px; background: #232b3a; color: var(--text); font-size: 12px; padding: 3px 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); white-space: nowrap; pointer-events: none; z-index: 10; opacity: 1; transition: opacity .15s; right: 21px; }
+.clip-item:hover { transform: translateY(-1px); border-color: var(--hover-border-neutral); box-shadow: 0 12px 35px rgba(0,0,0,0.5); }
+.clip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 14px; }
+.clip-actions { display: flex; gap: 8px; }
+.clip-item .icon-button { transition: opacity .12s ease, background .12s ease, border-color .12s ease; }
+.clip-item .floating-delete-btn, .clip-item .expand-btn { opacity: 0; }
+
+/* Favorite button hover effect for consistency */
+.clip-item .favorite-btn {
+	transition: opacity .12s ease, background .12s ease, border-color .12s ease;
+	background: transparent;
+	border-radius: 6px;
+}
+.clip-item .favorite-btn:hover, .clip-item .favorite-btn:focus-visible {
+	background: var(--favorite-hover-bg);
+	opacity: 1;
+}
+.clip-item .favorite-btn.active {
+	background: transparent;
+}
+.clip-item .favorite-btn.active:hover,
+.clip-item .favorite-btn.active:focus-visible {
+	background: var(--favorite-hover-bg);
+	opacity: 1;
+}
+.clip-item .favorite-btn:not(.active):hover, .clip-item .favorite-btn:not(.active):focus-visible {
+	background: var(--favorite-icon-bg);
+}
+.clip-item .favorite-btn:not(.active):hover .icon-star_filled,
+.clip-item .favorite-btn:not(.active):focus-visible .icon-star_filled {
+	background: var(--favorite-icon-white) !important;
+}
+
+/* Expand button icon hover color */
+.expand-btn:hover .icon-expand,
+.expand-btn:focus-visible .icon-expand {
+	background: var(--expand-icon-hover-bg, #3b82f6); /* fallback to bright blue */
+	color: #fff;
+}
+.clip-right-meta { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.clips-container.is-empty { padding-top: 16px; }
+.clip-item-empty { pointer-events: none; background: none !important; border: none !important; box-shadow: none !important; visibility: hidden; }
+
+// Badge styles
+.badge { font-size: 10px; line-height: 1; padding: 4px 6px; border-radius: 999px; border: 1px solid currentColor; background: transparent; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 600; opacity: .85; }
+.badge-app { color: #39d98a; }
+.badge-tag { color: #5aa9ff; }
+.badge-app:hover, .badge-tag:hover, .badge-add:hover { opacity: 1; }
+.badge-add { opacity: .45; transition: opacity .12s ease, background .12s ease, border-color .12s ease; display: inline-flex; align-items: center; gap: 0; cursor: pointer; padding: 4px 9px; min-width: 24px; border-style: dotted; border-width: 1px; border-color: #5aa9ff; background: transparent; }
+.clip-item:hover .badge-add { opacity: .75; }
+.badge-add.always { opacity: .75; }
+.badge-add:hover, .clip-item:hover .badge-add:hover { opacity: 1; }
+.badge-add .icon { width: 10px; height: 10px; }
+.badge-tag-input { background: #1d2636 !important; color: var(--text) !important; min-width: 70px; }
+.badge-tag-input:focus { outline: none; border-color: var(--brand); }
+.badge-ellipsis { cursor: pointer; background: rgba(255,255,255,0.06); }
+.badge-ellipsis:hover { background: rgba(255,255,255,0.12); }
+.tag-removable { position: relative; overflow: visible; }
+.tag-remove-btn { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; background: rgba(24,30,44,0.55); border: 1px solid rgba(248,113,113,0.5); border-radius: 4px; cursor: pointer; opacity: 0; padding: 0; pointer-events: none; transition: opacity .12s ease, background .12s ease, border-color .12s ease, color .12s ease, transform .12s ease; z-index: 2; color: var(--danger); backdrop-filter: blur(2px); box-shadow: 0 0 0 1px rgba(0,0,0,0.35); }
+.tag-remove-btn .icon { width: 10px; height: 10px; opacity: .9; }
+.tag-remove-btn:hover .icon { opacity: 1; }
+.tag-removable:hover .tag-remove-btn, .tag-remove-btn:focus-visible { opacity: 1; pointer-events: auto; }
+.tag-removable:hover { padding-right: 24px; }
+.tag-removable:focus-within { padding-right: 24px; }
+.tag-remove-btn:hover { background: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.85); }
+.tag-remove-btn:active { transform: translateY(calc(-50% + 0.5px)) scale(.95); }
+.copied-indicator { color: #39d98a; font-size: 14px; font-weight: 600; margin-right: 6px; display: inline-block; }
+.clip-tags-row .badge { opacity: .9; }
+.clip-tags-row .badge-add { opacity: .6; }
+.clip-tags-row .badge-add:hover { opacity: 1; }
+
+/* Enhanced tag interaction fixes */
+/* Reserve space at row level instead of individual tags to prevent layout shifts */
+.clip-right-meta {
+  padding-right: 20px; /* Reserve space for delete button at row level */
+}
+
+.clip-tags-row {
+  padding-right: 20px; /* Reserve space for delete button in expanded tag rows */
+}
+
+.tag-removable {
+  /* Remove individual tag padding - space is now reserved at row level */
+  padding-right: 6px !important;
+}
+
+.tag-removable:hover {
+  /* Extend padding only when hovering to accommodate delete button */
+  padding-right: 24px !important;
+}
+
+.tag-removable:focus-within {
+  /* Extend padding when focused to accommodate delete button */
+  padding-right: 24px !important;
+}
+
+/* Fix for badge hover effect not working when tags are present */
+/* Ensure hover effects work with higher specificity */
+.clip-right-meta .badge-app:hover,
+.clip-right-meta .badge-tag:hover,
+.clip-tags-row .badge-app:hover,
+.clip-tags-row .badge-tag:hover {
+  opacity: 1 !important;
+}
+
+// Button styles
+.icon-button { appearance: none; border: 1px solid var(--border); color: var(--text); background: var(--control-bg); border-radius: 10px; padding: 6px 8px; display: inline-flex; align-items: center; justify-content: center; min-width: 32px; min-height: 32px; cursor: pointer; transition: background .12s ease, border-color .12s ease, transform .12s ease, box-shadow .12s ease; }
+.icon-button:hover { background: var(--hover-bg); border-color: var(--hover-border-neutral); }
+.icon-button:active { transform: translateY(.5px); }
+.icon-button:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--ring); }
+.copy-btn { color: var(--brand); }
+.delete-btn { color: var(--danger); }
+.copy-btn:hover { background: var(--brand); color: #0d1220; border-color: transparent; }
+.delete-btn:hover { background: var(--danger); color: #0d1220; border-color: transparent; }
+.settings-btn { color: var(--text); }
+.settings-btn:hover { background: var(--hover-bg); border-color: var(--hover-border-neutral); }
+.fav-filter-btn, .refresh-btn { width: 36px; height: 36px; min-width: 36px; min-height: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.fav-filter-btn .icon { width: 24px; height: 24px; }
+.refresh-btn .icon { width: 20px; height: 20px; }
+.favorite-btn { appearance: none; border: none; background: none; padding: 3px; width: 30px; height: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; opacity: .55; transition: opacity .12s ease, background .12s ease; }
+.clip-item:hover .favorite-btn:not(.active) { opacity: .85; }
+.favorite-btn:hover, .favorite-btn:focus-visible, .favorite-btn.active { opacity: 1; }
+.favorite-btn .icon { width: 26px; height: 26px; background: #59616b; transition: background .12s ease, opacity .12s ease; }
+.favorite-btn.active .icon { background: #facc15; }
+.favorite-btn:not(.active):hover .icon { background: #6a7480; }
+.expand-btn, .floating-delete-btn { position: absolute; width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: none; cursor: pointer; border-radius: 8px; transition: opacity .12s ease, color .12s ease, background .12s ease; }
+.expand-btn { top: -14px; right: -14px; color: var(--brand); }
+.expand-btn .icon { width: 23px; height: 23px; }
+.expand-btn:hover { color: #8cbcff; background: rgba(108, 162, 255, 0.12); }
+.floating-delete-btn { bottom: -14px; right: -14px; color: var(--danger); }
+.floating-delete-btn .icon { width: 23px; height: 23px; }
+.floating-delete-btn:hover { color: var(--danger-dark); background: rgba(255, 64, 64, 0.12); }
+.expand-btn:focus-visible, .floating-delete-btn:focus-visible { opacity: 1; }
+.delete-all-btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; font-weight: 600; min-width: unset; }
+
+/* Badge styles */
+.badge { font-size: 10px; line-height: 1; padding: 4px 6px; border-radius: 999px; border: 1px solid currentColor; background: transparent; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-weight: 600; opacity: .85; }
+.badge-app { color: #39d98a; }
+.badge-tag { color: #5aa9ff; }
+.badge-app:hover, .badge-tag:hover, .badge-add:hover { opacity: 1; }
+.badge-add { opacity: .45; transition: opacity .12s ease, background .12s ease, border-color .12s ease; display: inline-flex; align-items: center; gap: 0; cursor: pointer; padding: 4px 9px; min-width: 24px; border-style: dotted; border-width: 1px; border-color: #5aa9ff; background: transparent; }
+.clip-item:hover .badge-add { opacity: .75; }
+.badge-add.always { opacity: .75; }
+.badge-add:hover, .clip-item:hover .badge-add:hover { opacity: 1; }
+.badge-add .icon { width: 10px; height: 10px; }
+.badge-tag-input { background: #1d2636 !important; color: var(--text) !important; min-width: 70px; }
+.badge-tag-input:focus { outline: none; border-color: var(--brand); }
+.badge-ellipsis { cursor: pointer; background: rgba(255,255,255,0.06); }
+.badge-ellipsis:hover { background: rgba(255,255,255,0.12); }
+.tag-removable { position: relative; overflow: visible; }
+.tag-remove-btn { position: absolute; top: 50%; right: 4px; transform: translateY(-50%); width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; background: rgba(24,30,44,0.55); border: 1px solid rgba(248,113,113,0.5); border-radius: 4px; cursor: pointer; opacity: 0; padding: 0; pointer-events: none; transition: opacity .12s ease, background .12s ease, border-color .12s ease, color .12s ease, transform .12s ease; z-index: 2; color: var(--danger); backdrop-filter: blur(2px); box-shadow: 0 0 0 1px rgba(0,0,0,0.35); }
+.tag-remove-btn .icon { width: 10px; height: 10px; opacity: .9; }
+.tag-remove-btn:hover .icon { opacity: 1; }
+.tag-removable:hover .tag-remove-btn, .tag-remove-btn:focus-visible { opacity: 1; pointer-events: auto; }
+.tag-removable:hover { padding-right: 24px; }
+.tag-removable:focus-within { padding-right: 24px; }
+.tag-remove-btn:hover { background: rgba(248,113,113,0.18); border-color: rgba(248,113,113,0.85); }
+.tag-remove-btn:active { transform: translateY(calc(-50% + 0.5px)) scale(.95); }
+.copied-indicator { color: #39d98a; font-size: 14px; font-weight: 600; margin-right: 6px; display: inline-block; }
+
+/* Contextual badge visibility adjustments inside expanded clip rows */
+.clip-tags-row .badge { opacity: .9; }
+.clip-tags-row .badge-add { opacity: .6; }
+.clip-tags-row .badge-add:hover { opacity: 1; }
