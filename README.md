@@ -364,12 +364,183 @@ npm run build
 
 Compiles TypeScript to `dist/main/` and builds React app to `dist/`.
 
+### Creating Distribution Packages
+
+The project includes `electron-builder` configuration for creating distributable packages.
+
+#### Available Packaging Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run pack` | Create unpackaged development build (for testing) |
+| `npm run dist` | Create distributable packages for current platform |
+| `npm run dist:mac` | Create macOS packages (.dmg, .zip) for both Intel and Apple Silicon |
+| `npm run dist:win` | Create Windows packages (.exe, portable) |
+| `npm run dist:linux` | Create Linux packages (.AppImage, .deb) |
+
+#### Step-by-Step Release Process
+
+1. **Prepare for Release**
+
+   ```bash
+   # Update version in package.json
+   npm version patch  # or minor/major
+
+   # Run tests to ensure everything works
+   npm test
+
+   # Build the application
+   npm run build
+   ```
+
+2. **Create Distribution Packages**
+
+   ```bash
+   # For macOS (creates both Intel and Apple Silicon versions)
+   npm run dist:mac
+
+   # For all platforms (requires platform-specific setup)
+   npm run dist
+   ```
+
+3. **Find Your Packages**
+
+   Packages are created in the `release/` directory:
+
+   **macOS:**
+   - `Extended Clipboard-{version}.dmg` (Intel installer)
+   - `Extended Clipboard-{version}-arm64.dmg` (Apple Silicon installer)
+   - `Extended Clipboard-{version}-mac.zip` (Intel portable)
+   - `Extended Clipboard-{version}-arm64-mac.zip` (Apple Silicon portable)
+
+   **Windows:**
+   - `Extended Clipboard Setup {version}.exe` (installer)
+   - `Extended Clipboard {version}.exe` (portable)
+
+   **Linux:**
+   - `Extended Clipboard-{version}.AppImage` (portable)
+   - `extended-clipboard_{version}_amd64.deb` (Debian/Ubuntu installer)
+
+### Installation Guide
+
+#### macOS Installation
+
+##### DMG Installer (Recommended)
+
+1. Download the appropriate DMG file for your Mac:
+   - Intel Macs: `Extended Clipboard-{version}.dmg`
+   - Apple Silicon Macs: `Extended Clipboard-{version}-arm64.dmg`
+
+2. Double-click the DMG file to open it
+
+3. Drag "Extended Clipboard" to the Applications folder
+
+4. Launch from Applications folder or Spotlight
+
+##### ZIP Archive (Portable)
+
+1. Download the appropriate ZIP file for your Mac
+
+2. Extract the ZIP file
+
+3. Run the app directly from the extracted folder
+
+**Security Notice for macOS:**
+
+- On first launch, you may see a security warning because the app is unsigned
+- To open the app: Right-click → "Open" → "Open" (or go to System Preferences → Security & Privacy → "Open Anyway")
+- This only needs to be done once
+
+#### Windows Installation
+
+##### Installer (Recommended)
+
+1. Download `Extended Clipboard Setup {version}.exe`
+
+2. Run the installer
+
+3. Follow the installation wizard
+
+4. Launch from Start Menu or Desktop shortcut
+
+##### Portable
+
+1. Download `Extended Clipboard {version}.exe`
+
+2. Run directly (no installation required)
+
+**Security Notice for Windows:**
+
+- Windows SmartScreen may show a warning for unsigned apps
+- Click "More info" → "Run anyway" to proceed
+- Windows Defender may need approval for clipboard access
+
+#### Linux Installation
+
+##### AppImage (Portable)
+
+1. Download `Extended Clipboard-{version}.AppImage`
+
+2. Make it executable: `chmod +x Extended\ Clipboard-{version}.AppImage`
+
+3. Run directly: `./Extended\ Clipboard-{version}.AppImage`
+
+##### DEB Package (Debian/Ubuntu)
+
+1. Download `extended-clipboard_{version}_amd64.deb`
+
+2. Install: `sudo dpkg -i extended-clipboard_{version}_amd64.deb`
+
+3. Launch from applications menu or run `extended-clipboard`
+
+### Code Signing & Distribution
+
+#### For Development/Testing
+
+- The default build creates unsigned packages
+- Users will see security warnings but the app will work
+- Suitable for personal use and testing
+
+#### For Production Distribution
+
+**macOS Code Signing:**
+
+1. Obtain an Apple Developer ID certificate
+
+2. Add to your build configuration:
+
+   ```json
+   "mac": {
+     "identity": "Developer ID Application: Your Name (TEAM_ID)"
+   }
+   ```
+
+**Windows Code Signing:**
+
+1. Obtain a code signing certificate
+
+2. Add to your build configuration:
+
+   ```json
+   "win": {
+     "certificateFile": "path/to/certificate.p12",
+     "certificatePassword": "password"
+   }
+   ```
+
+### Distribution Channels
+
+- **GitHub Releases**: Upload packages as release assets
+- **Direct Download**: Host packages on your website
+- **App Stores**: Submit to Mac App Store, Microsoft Store (with additional configuration)
+
 ### Production Considerations
 
 - App name and icon are set at runtime
-- For installers, configure electron-builder with platform-specific icons
-- Consider code signing for distribution
-- Test on target platforms before release
+- Test packages on target platforms before release
+- Consider implementing auto-updater for production releases
+- Monitor download analytics and user feedback
+- Provide clear installation instructions for end users
 
 ## 🤝 Contributing
 
