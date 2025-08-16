@@ -70,7 +70,7 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
             name: string;
             [key: string]: unknown;
           }
-          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: Tag | string) => typeof t === "string" ? t : t.name));
+          if (Array.isArray(tagsResp)) setAllTags(tagsResp.map((t: any) => typeof t === "string" ? t : (t.name ?? String(t))));
           if (Array.isArray(appsResp)) setAllApps(appsResp.filter(Boolean).sort());
         } catch {}
       })();
