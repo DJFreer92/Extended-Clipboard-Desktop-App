@@ -126,8 +126,8 @@ export function useSearchFiltering({ onFiltersChange }: UseSearchFilteringProps 
   const addTag = (tag: string) => {
     if (tag && !allTags.includes(tag)) {
       setAllTags(prev => [...prev, tag].sort());
-      // Debounced refresh from server to capture any concurrent changes
-      refreshTaxonomy();
+      // Don't refresh taxonomy immediately - let it be refreshed on next natural cycle
+      // to avoid overwriting local state before backend has processed the change
     }
   };
 

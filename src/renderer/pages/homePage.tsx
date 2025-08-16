@@ -65,7 +65,7 @@ export default function HomePage() {
 
   // Clipboard Management
   const { handleCopy, markSelfCopy, globalExternalCopyNonce, onExternalClipboardChange } = useClipboardActions();
-  const { toggleFavoriteClip, getFavoriteState } = useFavorites();
+  const { toggleFavoriteClip, getFavoriteState, syncWithClips } = useFavorites();
 
   // Clipboard watcher hook
   const { markSelfCopy: watcherMarkSelfCopy } = useClipboardWatcher({
@@ -73,7 +73,13 @@ export default function HomePage() {
     deps: [isFiltered, searchCSV, timeFrame, selectedTags.join(','), selectedApps.join(','), globalExternalCopyNonce],
     existingClips: clips,
     registerApp: addApp,
-    onNewClip: async () => { await refreshClips(); },
+    onNewClip: async () => {
+      // Only refresh clips if we're not currently filtering
+      // When filtering is active, new clips shouldn't override the filtered view
+      if (!isFiltered) {
+        await refreshClips();
+      }
+    },
     onExternalClipboardChange,
   });
 
@@ -86,9 +92,22 @@ export default function HomePage() {
 
   // Enhanced toggle favorite that handles UI updates
   const handleToggleFavorite = async (clip: any) => {
-    const currentState = getFavoriteState(clip);
-    const updatedClip = { ...clip, IsFavorite: !currentState };
-    await toggleFavoriteClip(updatedClip);
+    // Pass the clip as-is to toggleFavoriteClip which will determine the new state
+    await toggleFavoriteClip(clip);
+  };
+
+  // Sync optimistic updates when clips array changes
+  useEffect(() => {
+    syncWithClips(clips);
+  }, [clips, syncWithClips]);
+
+    // Enhanced tag added handler that refreshes clips
+  const handleTagAdded = (tag: string) => {
+    addTag(tag);
+    if (tag) {
+      // Trigger refresh to sync with backend after tag operations
+      refreshClips();
+    }
   };
 
   return (
@@ -134,9 +153,9 @@ export default function HomePage() {
           onCopy={handleCopyWithMarking}
           onDelete={handleDelete}
           onToggleFavorite={handleToggleFavorite}
+          onTagAdded={handleTagAdded}
           isSearching={isFiltered}
           externalClipboardNonce={globalExternalCopyNonce}
-          onTagAdded={addTag}
         />
         <InfiniteScrollSentinel sentinelRef={sentinelRef} />
       </div>

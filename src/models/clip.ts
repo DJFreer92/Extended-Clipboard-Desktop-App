@@ -10,6 +10,7 @@ export interface ClipModel {
 
 function parseTimestampMs(ts: string): number {
   if (!ts) return 0;
+
   // Handle pure numeric seconds or milliseconds in string form
   if (/^\d+$/.test(ts)) {
     const n = Number(ts);
@@ -17,6 +18,10 @@ function parseTimestampMs(ts: string): number {
     if (ts.length <= 10 || n < 1e12) return n * 1000;
     return n;
   }
+
+  // Parse ISO timestamp strings (expecting UTC format)
+  // Date.parse() correctly handles UTC timestamps and converts them
+  // to local time for JavaScript Date operations
   const ms = Date.parse(ts);
   return Number.isNaN(ms) ? 0 : ms;
 }
@@ -27,7 +32,7 @@ export function fromApi(dto: { id: number; content: string; timestamp: string; f
     Content: String(dto.content ?? ""),
     Timestamp: parseTimestampMs(dto.timestamp),
     FromAppName: dto.from_app_name ?? null,
-    Tags: Array.isArray(dto.tags) ? dto.tags.map(t => String(t)) : [],
+    Tags: Array.isArray(dto.tags) ? dto.tags.map(t => String(t)).sort() : [],
     IsFavorite: dto.is_favorite ?? false,
   };
 }

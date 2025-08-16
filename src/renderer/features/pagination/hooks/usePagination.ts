@@ -40,10 +40,12 @@ export function usePagination({
   const displayCount = isFiltered ? filteredCount : totalCount;
 
   const loadFirstPage = async () => {
+    console.log(`[Pagination] loadFirstPage called - isFiltered: ${isFiltered}`);
     setLoading(true);
     if (isFiltered) setCountLoading(true);
     try {
       if (isFiltered) {
+        console.log(`[Pagination] Loading filtered clips - search: "${searchCSV}", timeFrame: "${timeFrame}", favorites: ${favoritesOnly}, tags: [${selectedTags.join(',')}], apps: [${selectedApps.join(',')}]`);
         // Get filtered count first
         let cnt = 0;
         try {
@@ -58,12 +60,18 @@ export function usePagination({
 
         // Get filtered clips
         const page = await searchService.filterNClips(searchCSV, timeFrame, pageSize, selectedTags, selectedApps, favoritesOnly);
-        const mapped = page.map(fromApi);
+        console.log(`[Pagination] Raw filtered response:`, page);
+
+        // Defensive check: ensure page is an array
+        const pageArray = Array.isArray(page) ? page : [];
+        const mapped = pageArray.map(fromApi);
+        console.log(`[Pagination] Filtered clips loaded:`, mapped.length, 'clips');
         setClips(mapped);
         onClipsUpdate?.(mapped);
         setHasMore(mapped.length > 0 && mapped.length < cnt ? true : (mapped.length === pageSize));
         setFetchError(null);
       } else {
+        console.log(`[Pagination] Loading unfiltered clips`);
         // Get total count first
         let cnt = 0;
         try {
@@ -81,6 +89,7 @@ export function usePagination({
         // Defensive check: ensure page is an array
         const pageArray = Array.isArray(page) ? page : [];
         const mapped = pageArray.map(fromApi);
+        console.log(`[Pagination] Unfiltered clips loaded:`, mapped.length, 'clips');
         setClips(mapped);
         onClipsUpdate?.(mapped);
         setHasMore(mapped.length > 0 && (mapped.length < cnt ? true : mapped.length === pageSize));
@@ -89,21 +98,36 @@ export function usePagination({
     } catch (e) {
       // Fallback attempt
       console.error("First page load failed; attempting fallback", e);
-      try {
-        const dto = await clipsService.getAllClips();
 
-        // Defensive check: ensure dto is an array
-        const dtoArray = Array.isArray(dto) ? dto : [];
-        const mapped = dtoArray.map(fromApi);
-        setClips(mapped);
-        onClipsUpdate?.(mapped);
-        setHasMore(false);
-        setTotalCount(mapped.length);
-        onCountsUpdate?.(mapped.length, mapped.length);
-        setFetchError(null);
-      } catch (e2) {
-        console.error("Fallback load failed", e2);
-        setFetchError("Failed to load clips");
+      // IMPORTANT: Do not use getAllClips fallback when filters are active
+      // This prevents unfiltered results from overriding filtered views
+      if (isFiltered) {
+        console.warn(`[Pagination] Filters are active - skipping getAllClips fallback to preserve filtered view`);
+        console.error("Failed to load filtered clips:", e);
+        setFetchError("Failed to load filtered clips");
+        setClips([]);
+        onClipsUpdate?.([]);
+        setFilteredCount(0);
+        onCountsUpdate?.(totalCount, 0);
+      } else {
+        console.warn(`[Pagination] No filters active - using getAllClips fallback`);
+        try {
+          const dto = await clipsService.getAllClips();
+
+          // Defensive check: ensure dto is an array
+          const dtoArray = Array.isArray(dto) ? dto : [];
+          const mapped = dtoArray.map(fromApi);
+          console.log(`[Pagination] Fallback clips loaded:`, mapped.length, 'clips');
+          setClips(mapped);
+          onClipsUpdate?.(mapped);
+          setHasMore(false);
+          setTotalCount(mapped.length);
+          onCountsUpdate?.(mapped.length, mapped.length);
+          setFetchError(null);
+        } catch (e2) {
+          console.error("Fallback load failed", e2);
+          setFetchError("Failed to load clips");
+        }
       }
     } finally {
       setLoading(false);
@@ -125,7 +149,9 @@ export function usePagination({
         page = await clipsService.getNClipsBeforeId(pageSize, oldestId);
       }
 
-      const mapped = page.map(fromApi);
+      // Defensive check: ensure page is an array
+      const pageArray = Array.isArray(page) ? page : [];
+      const mapped = pageArray.map(fromApi);
       const newClips = [...clips, ...mapped];
       setClips(newClips);
       onClipsUpdate?.(newClips);
@@ -217,6 +243,7 @@ export function usePagination({
 
   // Load first page when filters change
   useEffect(() => {
+    console.log(`[Pagination] useEffect triggered - filters changed`);
     let cancelled = false;
     (async () => {
       await loadFirstPage();
@@ -224,9 +251,7 @@ export function usePagination({
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchCSV, timeFrame, favoritesOnly, selectedTags.join(','), selectedApps.join(',')]);
-
-  // Infinite scroll: observe sentinel
+  }, [isFiltered, searchCSV, timeFrame, favoritesOnly, selectedTags.join(','), selectedApps.join(',')]);    // Infinite scroll: observe sentinel
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node) return;

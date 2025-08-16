@@ -54,7 +54,7 @@ describe('clipsService', () => {
         credentials: 'same-origin',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: expect.stringMatching(/\{"id":\d+,"content":"test content","timestamp":"[^"]+"\}/)
+        body: expect.stringMatching(/\{"content":"test content","timestamp":"[^"]+Z"\}/)
       })
     );
   });
@@ -68,7 +68,7 @@ describe('clipsService', () => {
       '/clipboard/add_clip?from_app_name=VSCode',
       expect.objectContaining({
         method: 'POST',
-        body: expect.stringMatching(/\{"id":\d+,"content":"test content","timestamp":"[^"]+","from_app_name":"VSCode"\}/)
+        body: expect.stringMatching(/\{"content":"test content","timestamp":"[^"]+Z","from_app_name":"VSCode"\}/)
       })
     );
   });
@@ -79,7 +79,7 @@ describe('clipsService', () => {
     await clipsService.deleteClip(42);
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      '/clipboard/delete_clip?clip_id=42',
+      '/clipboard/delete_clip?id=42',
       expect.objectContaining({ method: 'POST' })
     );
   });
@@ -178,5 +178,34 @@ describe('clipsService', () => {
     expect(clips).toEqual([{ id: 1, content: 'test' }]);
     expect(count).toBe(1);
     expect(globalThis.fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('addClipWithBackendTimestamp should call endpoint without timestamp', async () => {
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ ok: true }));
+
+    await clipsService.addClipWithBackendTimestamp('test content', 'Chrome');
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/clipboard/add_clip?from_app_name=Chrome',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringMatching(/\{"content":"test content","from_app_name":"Chrome"\}/)
+      })
+    );
+  });
+
+  it('addClipWithTimestamp should call endpoint with provided timestamp', async () => {
+    (globalThis.fetch as any).mockResolvedValueOnce(okJson({ ok: true }));
+    const testDate = new Date('2025-08-15T21:51:00.000Z');
+
+    await clipsService.addClipWithTimestamp('test content', testDate, 'Firefox');
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/clipboard/add_clip?from_app_name=Firefox',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringMatching(/\{"content":"test content","timestamp":"2025-08-15T21:51:00\.000Z","from_app_name":"Firefox"\}/)
+      })
+    );
   });
 });
