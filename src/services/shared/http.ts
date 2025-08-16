@@ -7,11 +7,6 @@ const API_BASE_URL: string = (import.meta as any)?.env?.VITE_API_BASE_URL || "";
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
 
-  // Debug logging for development
-  if ((import.meta as any)?.env?.DEV) {
-    console.log(`[API Request] ${init?.method || 'GET'} ${url}`);
-  }
-
   try {
     const res = await fetch(url, {
       ...init,
@@ -52,9 +47,7 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
     // Return mock data for development when API is not available
     // Only provide mock data in dev mode and not during testing
     if ((import.meta as any)?.env?.DEV && !(import.meta as any)?.env?.VITEST) {
-      console.log(`Returning mock data for ${path}`);
       const mockData = getMockData(path);
-      console.log(`Mock data returned:`, mockData);
       return mockData as T;
     }
 
@@ -64,8 +57,6 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
 
 // Mock data for development when backend is not available
 function getMockData(path: string): any {
-  console.log(`Getting mock data for path: ${path}`);
-
   if (path.includes('/clipboard/get_recent_clips') || path.includes('/clipboard/get_all_clips')) {
     return {
       clips: [
@@ -186,8 +177,6 @@ function getMockData(path: string): any {
     const favoritesOnly = url.searchParams.get('favorites_only') === 'true';
     const selectedTags = url.searchParams.getAll('selected_tags');
     const selectedApps = url.searchParams.getAll('selected_apps');
-
-    console.log(`[Mock Filter] search="${searchParam}" favorites=${favoritesOnly} tags=[${selectedTags.join(',')}] apps=[${selectedApps.join(',')}]`);
 
     // Base mock clips
     const allMockClips = [
