@@ -1,11 +1,29 @@
-import { StrictMode, useState } from "react";
+import { StrictMode, useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles/styles.scss";
 import HomePage from "./pages/homePage";
 import SettingsPage from "./pages/settingsPage";
+import { isWebBuild, webFeatures, platformAPI } from "./utils/platform";
 
 function App() {
   const [page, setPage] = useState<"home" | "settings">("home");
+
+  useEffect(() => {
+    // Initialize web-specific features
+    if (isWebBuild) {
+      // Register service worker for PWA capabilities
+      webFeatures.registerServiceWorker();
+
+      // Request notification permission for web clipboard notifications
+      webFeatures.requestNotificationPermission();
+
+      // Show web deployment notice
+      console.log('Extended Clipboard running in web mode');
+
+      // Note: Web clipboard access requires user interaction
+      // The app will prompt for clipboard permissions when needed
+    }
+  }, []);
 
   return (
     <div className="app-shell">
