@@ -3,16 +3,16 @@ import { resolve } from 'path';
 
 export default defineConfig(({ mode }) => {
   const isWebBuild = process.env.VITE_BUILD_TARGET === 'web';
-  
+
   const baseInput = {
     main: resolve(__dirname, 'index.html'),
   };
-  
+
   const electronInput = {
     ...baseInput,
     tray: resolve(__dirname, 'tray.html'),
   };
-  
+
   return {
     base: isWebBuild ? '/Extended-Clipboard-Desktop-App/' : './',
     build: {
