@@ -140,6 +140,7 @@ vite.config.ts.timestamp-*
 # Build and release artifacts
 /release/
 /dist/
+/dist-web/
 
 # Package-specific ignores
 *.dmg
