@@ -1,4 +1,3 @@
-
 /* Semantic color tokens */
 :root {
 	/* Base surfaces */
@@ -18,9 +17,9 @@
 	--color-danger-strong: #b91c1c;
 
 	/* UI accents */
-	--color-ring: rgba(108,162,255,0.45);
-	--color-border: rgba(255,255,255,0.08);
-	--color-shadow: 0 10px 30px rgba(0,0,0,0.4);
+	--color-ring: rgba(108, 162, 255, 0.45);
+	--color-border: rgba(255, 255, 255, 0.08);
+	--color-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 
 	/* Backwards-compat CSS custom property aliases -> new semantic tokens */
 	--bg: var(--color-bg);
@@ -40,18 +39,25 @@
 	/* Unified hover policy tokens */
 	--control-bg: #121828;
 	--hover-bg: #131a2a;
-	--hover-border-neutral: rgba(255,255,255,0.16);
+	--hover-border-neutral: rgba(255, 255, 255, 0.16);
 	/* Favorite button hover background */
 	--favorite-hover-bg: rgba(255, 221, 77, 0.18);
 	--favorite-icon-bg: #4a4f58;
 	--favorite-icon-white: #fff;
 }
 
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; }
+* {
+	box-sizing: border-box;
+}
+html,
+body,
+#root {
+	height: 100%;
+}
 body {
 	margin: 0;
-	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+	font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji",
+		"Segoe UI Emoji";
 	background: linear-gradient(180deg, #0f1115 0%, #111521 35%, #131a2a 70%, #0f1115 100%);
 	background-attachment: fixed;
 	color: var(--text);

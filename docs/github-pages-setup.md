@@ -48,13 +48,13 @@ Push to the main branch, and GitHub Actions will automatically build and deploy 
 
 ## Web vs Desktop Differences
 
-| Feature | Desktop | Web |
-|---------|---------|-----|
-| Clipboard Monitoring | ✅ Automatic background monitoring | ⚠️ Manual with user permission |
-| File System Access | ✅ Full access | ❌ Not available |
-| System Notifications | ✅ Native notifications | ✅ Browser notifications (with permission) |
-| Offline Support | ✅ Full offline capability | ✅ Limited with service worker |
-| App Installation | ✅ Native installer | ✅ PWA install prompt |
+| Feature              | Desktop                            | Web                                        |
+| -------------------- | ---------------------------------- | ------------------------------------------ |
+| Clipboard Monitoring | ✅ Automatic background monitoring | ⚠️ Manual with user permission             |
+| File System Access   | ✅ Full access                     | ❌ Not available                           |
+| System Notifications | ✅ Native notifications            | ✅ Browser notifications (with permission) |
+| Offline Support      | ✅ Full offline capability         | ✅ Limited with service worker             |
+| App Installation     | ✅ Native installer                | ✅ PWA install prompt                      |
 
 ## Local Development
 

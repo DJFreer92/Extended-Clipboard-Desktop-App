@@ -11,8 +11,5 @@
 		"noEmit": true,
 		"types": ["electron"]
 	},
-	"include": [
-		"src/**/*.ts",
-		"src/**/*.tsx"
-	]
+	"include": ["src/**/*.ts", "src/**/*.tsx"]
 }

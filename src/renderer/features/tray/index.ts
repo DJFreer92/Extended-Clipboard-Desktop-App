@@ -1,2 +1,2 @@
 // Tray feature exports
-export { useTray } from './hooks/useTray';
+export { useTray } from "./hooks/useTray";

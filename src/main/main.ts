@@ -16,17 +16,17 @@ const execFileAsync = promisify(execFile);
 
 async function getFrontmostAppName(): Promise<string | undefined> {
 	// Currently implemented for macOS only; other platforms fall back to Electron app name.
-	if (process.platform !== 'darwin') return undefined;
+	if (process.platform !== "darwin") return undefined;
 	try {
 		// AppleScript via System Events to get the name of the frontmost application process.
-		const script = "tell application \"System Events\" to get name of first application process whose frontmost is true";
-		const { stdout } = await execFileAsync('osascript', ['-e', script], { timeout: 1000 });
+		const script = 'tell application "System Events" to get name of first application process whose frontmost is true';
+		const { stdout } = await execFileAsync("osascript", ["-e", script], { timeout: 1000 });
 		const name = stdout.trim();
 		if (!name) return undefined;
 		// If it's our own app (Electron app name) just return our configured name
 		if (name === app.getName()) return name;
 		// If macOS reports generic 'Electron' (common in dev), and it's our focused window, map to our app name; otherwise leave as 'Electron'.
-		if (name === 'Electron' && mainWindow?.isFocused()) return app.getName();
+		if (name === "Electron" && mainWindow?.isFocused()) return app.getName();
 		return name;
 	} catch {
 		return undefined;
@@ -39,11 +39,13 @@ function createWindow() {
 		const isDev = !app.isPackaged;
 		const candidates = [
 			// Prefer dev paths when running in dev
-			...(isDev ? [
-				path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
-				path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
-				path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
-			] : []),
+			...(isDev
+				? [
+						path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+						path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
+						path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png")
+				  ]
+				: []),
 			// When packaged, resourcesPath is typically .../Extended Clipboard.app/Contents/Resources
 			path.join(process.resourcesPath ?? "", "Extended Clipboard_App_Icon.png"),
 			// When running from built dist
@@ -51,7 +53,7 @@ function createWindow() {
 			// As final fallbacks, also check dev paths even if packaged
 			path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
 			path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
-			path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
+			path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png")
 		].filter(Boolean) as string[];
 		for (const p of candidates) {
 			try {
@@ -64,19 +66,19 @@ function createWindow() {
 	const appIcon = resolveIcon();
 
 	mainWindow = new BrowserWindow({
-	width: 800,
-	height: 600,
-	show: false,
-	center: true,
-	backgroundColor: "#ffffff",
-	icon: appIcon, // used on Windows/Linux; ignored on macOS windows but fine to set
-	webPreferences: {
-	preload: path.join(__dirname, "preload.js"),
-	nodeIntegration: false,
-	contextIsolation: true,
-	webSecurity: true,
-	disableBlinkFeatures: "Auxclick"
-	}
+		width: 800,
+		height: 600,
+		show: false,
+		center: true,
+		backgroundColor: "#ffffff",
+		icon: appIcon, // used on Windows/Linux; ignored on macOS windows but fine to set
+		webPreferences: {
+			preload: path.join(__dirname, "preload.js"),
+			nodeIntegration: false,
+			contextIsolation: true,
+			webSecurity: true,
+			disableBlinkFeatures: "Auxclick"
+		}
 	});
 
 	const isDev = !app.isPackaged;
@@ -107,14 +109,14 @@ function createWindow() {
 }
 
 function createTrayWindow() {
-	console.log('createTrayWindow called, current trayWindow:', trayWindow ? 'exists' : 'null');
+	console.log("createTrayWindow called, current trayWindow:", trayWindow ? "exists" : "null");
 
 	if (trayWindow && !trayWindow.isDestroyed()) {
-		console.log('Returning existing tray window');
+		console.log("Returning existing tray window");
 		return trayWindow;
 	}
 
-	console.log('Creating new tray window...');
+	console.log("Creating new tray window...");
 
 	// Get cursor position for positioning
 	const cursorPosition = screen.getCursorScreenPoint();
@@ -141,7 +143,7 @@ function createTrayWindow() {
 		y = 10;
 	}
 
-	console.log('Creating BrowserWindow with dimensions:', { windowWidth, windowHeight, x, y });
+	console.log("Creating BrowserWindow with dimensions:", { windowWidth, windowHeight, x, y });
 
 	trayWindow = new BrowserWindow({
 		width: windowWidth,
@@ -158,39 +160,39 @@ function createTrayWindow() {
 		webPreferences: {
 			nodeIntegration: false,
 			contextIsolation: true,
-			preload: path.join(__dirname, "preload.js"),
-		},
+			preload: path.join(__dirname, "preload.js")
+		}
 	});
 
 	// Load the tray window HTML
 	if (app.isPackaged) {
-		console.log('Loading tray window from file:', path.join(__dirname, "../tray.html"));
+		console.log("Loading tray window from file:", path.join(__dirname, "../tray.html"));
 		trayWindow.loadFile(path.join(__dirname, "../tray.html"));
 	} else {
-		const trayUrl = process.env.VITE_DEV_SERVER_URL ?
-			`${process.env.VITE_DEV_SERVER_URL}/tray.html` :
-			'http://localhost:5174/tray.html';
-		console.log('Loading tray window from URL:', trayUrl);
+		const trayUrl = process.env.VITE_DEV_SERVER_URL
+			? `${process.env.VITE_DEV_SERVER_URL}/tray.html`
+			: "http://localhost:5174/tray.html";
+		console.log("Loading tray window from URL:", trayUrl);
 		trayWindow.loadURL(trayUrl);
 	}
 
 	// Add debugging for tray window events
-	trayWindow.webContents.on('did-finish-load', () => {
-		console.log('Tray window finished loading');
+	trayWindow.webContents.on("did-finish-load", () => {
+		console.log("Tray window finished loading");
 	});
 
-	trayWindow.webContents.on('did-fail-load', (_e, code, desc, url) => {
-		console.error('Tray window failed to load:', { code, desc, url });
+	trayWindow.webContents.on("did-fail-load", (_e, code, desc, url) => {
+		console.error("Tray window failed to load:", { code, desc, url });
 	});
 
 	// Hide window when it loses focus
-	trayWindow.on('blur', () => {
+	trayWindow.on("blur", () => {
 		if (trayWindow && !trayWindow.isDestroyed()) {
 			trayWindow.hide();
 		}
 	});
 
-	trayWindow.on('closed', () => {
+	trayWindow.on("closed", () => {
 		trayWindow = null;
 	});
 
@@ -202,45 +204,45 @@ function createTrayWindow() {
 
 function setupTrayWindowIPC() {
 	// Handle requests from tray window
-	ipcMain.on('tray:load-clips', () => {
+	ipcMain.on("tray:load-clips", () => {
 		if (trayWindow && !trayWindow.isDestroyed()) {
-			trayWindow.webContents.send('tray:clips-updated', trayClips);
+			trayWindow.webContents.send("tray:clips-updated", trayClips);
 		}
 	});
 
-	ipcMain.on('tray:copy-clip', (_event, clipId) => {
-		const clip = trayClips.find(c => c.Id === clipId);
+	ipcMain.on("tray:copy-clip", (_event, clipId) => {
+		const clip = trayClips.find((c) => c.Id === clipId);
 		if (clip) {
 			clipboard.writeText(clip.Content);
-			console.log('Copied clip from tray:', clipId, 'content length:', clip.Content.length);
+			console.log("Copied clip from tray:", clipId, "content length:", clip.Content.length);
 
 			// Send feedback to main window if available
 			if (mainWindow && !mainWindow.isDestroyed()) {
-				mainWindow.webContents.send('tray:copied', { id: clipId });
+				mainWindow.webContents.send("tray:copied", { id: clipId });
 			}
 		}
 	});
 
-	ipcMain.on('tray:search', (_event, query) => {
+	ipcMain.on("tray:search", (_event, query) => {
 		traySearchQuery = query;
 		if (trayWindow && !trayWindow.isDestroyed()) {
-			trayWindow.webContents.send('tray:search-updated', query);
+			trayWindow.webContents.send("tray:search-updated", query);
 		}
 	});
 
-	ipcMain.on('tray:close', () => {
+	ipcMain.on("tray:close", () => {
 		if (trayWindow && !trayWindow.isDestroyed()) {
 			trayWindow.hide();
 		}
 	});
 
-	ipcMain.on('tray:hide-window', () => {
+	ipcMain.on("tray:hide-window", () => {
 		if (trayWindow && !trayWindow.isDestroyed()) {
 			trayWindow.hide();
 		}
 	});
 
-	ipcMain.on('tray:open-main-app', () => {
+	ipcMain.on("tray:open-main-app", () => {
 		if (mainWindow) {
 			if (mainWindow.isMinimized()) mainWindow.restore();
 			mainWindow.focus();
@@ -252,101 +254,103 @@ function setupTrayWindowIPC() {
 
 function createTray() {
 	// Only create tray on macOS
-	if (process.platform !== 'darwin') {
-		console.log('Tray not supported on platform:', process.platform);
+	if (process.platform !== "darwin") {
+		console.log("Tray not supported on platform:", process.platform);
 		return;
 	}
 
-	console.log('Creating custom tray window for macOS...');
+	console.log("Creating custom tray window for macOS...");
 
 	// Resolve tray icon (should be 16x16 or 18x18 for tray)
 	const resolveTrayIcon = () => {
 		const isDev = !app.isPackaged;
 		const candidates = [
 			// Use the same app icon for tray - Electron will resize automatically
-			...(isDev ? [
-				path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
-				path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
-			] : []),
+			...(isDev
+				? [
+						path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+						path.join(process.cwd(), "Extended Clipboard_App_Icon.png")
+				  ]
+				: []),
 			path.join(process.resourcesPath ?? "", "Extended Clipboard_App_Icon.png"),
 			path.join(__dirname, "../Extended Clipboard_App_Icon.png"),
-			path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+			path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png")
 		].filter(Boolean) as string[];
 
-		console.log('Trying tray icon candidates:', candidates);
+		console.log("Trying tray icon candidates:", candidates);
 
 		for (const p of candidates) {
 			try {
 				const img = nativeImage.createFromPath(p);
 				if (!img.isEmpty()) {
-					console.log('Found tray icon at:', p);
+					console.log("Found tray icon at:", p);
 					// Resize for tray use
 					return img.resize({ width: 18, height: 18 });
 				}
 			} catch (error) {
-				console.log('Failed to load icon from:', p, error);
+				console.log("Failed to load icon from:", p, error);
 			}
 		}
-		console.log('No tray icon found, using default');
+		console.log("No tray icon found, using default");
 		return undefined;
 	};
 
 	const trayIcon = resolveTrayIcon();
 	if (!trayIcon) {
-		console.log('Failed to create tray icon, tray will not be created');
+		console.log("Failed to create tray icon, tray will not be created");
 		return;
 	}
 
 	tray = new Tray(trayIcon);
-	tray.setToolTip('Extended Clipboard');
-	console.log('Tray created successfully');
+	tray.setToolTip("Extended Clipboard");
+	console.log("Tray created successfully");
 
 	// Handle tray click to show/hide custom window
-	tray.on('click', () => {
-		console.log('Tray clicked - showing custom window');
+	tray.on("click", () => {
+		console.log("Tray clicked - showing custom window");
 
 		if (trayWindow && !trayWindow.isDestroyed()) {
-			console.log('Tray window exists, current visibility:', trayWindow.isVisible());
+			console.log("Tray window exists, current visibility:", trayWindow.isVisible());
 			if (trayWindow.isVisible()) {
-				console.log('Hiding tray window');
+				console.log("Hiding tray window");
 				trayWindow.hide();
 			} else {
-				console.log('Showing existing tray window');
+				console.log("Showing existing tray window");
 				// Update position before showing
 				updateTrayWindowPosition();
 				trayWindow.show();
 				trayWindow.focus();
 				// Send updated clips to the window
-				trayWindow.webContents.send('tray:clips-updated', trayClips);
+				trayWindow.webContents.send("tray:clips-updated", trayClips);
 			}
 		} else {
-			console.log('Creating new tray window');
+			console.log("Creating new tray window");
 			const window = createTrayWindow();
-			console.log('Tray window created, positioning...');
+			console.log("Tray window created, positioning...");
 			updateTrayWindowPosition();
-			console.log('Showing tray window...');
+			console.log("Showing tray window...");
 			window.show();
 			window.focus();
 			// Send initial clips after window is ready
 			setTimeout(() => {
 				if (window && !window.isDestroyed()) {
-					console.log('Sending initial clips to tray window');
-					window.webContents.send('tray:clips-updated', trayClips);
+					console.log("Sending initial clips to tray window");
+					window.webContents.send("tray:clips-updated", trayClips);
 				}
 			}, 100);
 		}
 	});
 
 	// Right-click shows minimal context menu
-	tray.on('right-click', () => {
+	tray.on("right-click", () => {
 		const contextMenu = Menu.buildFromTemplate([
 			{
-				label: 'Extended Clipboard',
+				label: "Extended Clipboard",
 				enabled: false
 			},
-			{ type: 'separator' },
+			{ type: "separator" },
 			{
-				label: 'Open App',
+				label: "Open App",
 				click: () => {
 					if (mainWindow) {
 						if (mainWindow.isMinimized()) mainWindow.restore();
@@ -356,9 +360,9 @@ function createTray() {
 					}
 				}
 			},
-			{ type: 'separator' },
+			{ type: "separator" },
 			{
-				label: 'Quit',
+				label: "Quit",
 				click: () => {
 					app.quit();
 				}
@@ -380,7 +384,7 @@ function updateTrayWindowPosition() {
 		const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
 
 		// Calculate position relative to tray icon
-		let x = trayBounds.x + (trayBounds.width / 2) - (windowBounds.width / 2);
+		let x = trayBounds.x + trayBounds.width / 2 - windowBounds.width / 2;
 		let y = trayBounds.y + trayBounds.height + 5;
 
 		// Ensure window stays on screen
@@ -401,7 +405,7 @@ function updateTrayWindowPosition() {
 
 		trayWindow.setPosition(x, y);
 	} catch (error) {
-		console.log('Failed to update tray window position:', error);
+		console.log("Failed to update tray window position:", error);
 		// Fallback to cursor position
 		const cursorPosition = screen.getCursorScreenPoint();
 		trayWindow.setPosition(cursorPosition.x - 160, cursorPosition.y + 10);
@@ -411,100 +415,115 @@ function updateTrayWindowPosition() {
 function updateTrayClips() {
 	// Update the tray window if it exists and is visible
 	if (trayWindow && !trayWindow.isDestroyed() && trayWindow.isVisible()) {
-		trayWindow.webContents.send('tray:clips-updated', trayClips);
+		trayWindow.webContents.send("tray:clips-updated", trayClips);
 	}
 }
 
 app.whenReady().then(() => {
 	// Ensure the app has a friendly name in dev and production
 	try {
-		app.setName('Extended Clipboard');
+		app.setName("Extended Clipboard");
 		// Also set process title in dev (helps some shells/task switchers)
-		process.title = 'Extended Clipboard';
+		process.title = "Extended Clipboard";
 	} catch {}
 	// On macOS, explicitly set an application menu so the App menu label uses app.name
-	if (process.platform === 'darwin') {
+	if (process.platform === "darwin") {
 		try {
-			const appLabel = 'Extended Clipboard';
-			try { app.setAboutPanelOptions({ applicationName: appLabel }); } catch {}
+			const appLabel = "Extended Clipboard";
+			try {
+				app.setAboutPanelOptions({ applicationName: appLabel });
+			} catch {}
 			const menu = Menu.buildFromTemplate([
 				{
 					label: appLabel,
 					submenu: [
-						{ role: 'about', label: `About ${appLabel}` },
-						{ type: 'separator' },
-						{ role: 'services' },
-						{ type: 'separator' },
-						{ role: 'hide', label: `Hide ${appLabel}` },
-						{ role: 'hideOthers' },
-						{ role: 'unhide' },
-						{ type: 'separator' },
-						{ role: 'quit', label: `Quit ${appLabel}` },
-					],
+						{ role: "about", label: `About ${appLabel}` },
+						{ type: "separator" },
+						{ role: "services" },
+						{ type: "separator" },
+						{ role: "hide", label: `Hide ${appLabel}` },
+						{ role: "hideOthers" },
+						{ role: "unhide" },
+						{ type: "separator" },
+						{ role: "quit", label: `Quit ${appLabel}` }
+					]
 				},
-				{ role: 'fileMenu' },
-				{ role: 'editMenu' },
-				{ role: 'viewMenu' },
-				{ role: 'windowMenu' },
+				{ role: "fileMenu" },
+				{ role: "editMenu" },
+				{ role: "viewMenu" },
+				{ role: "windowMenu" }
 			]);
 			Menu.setApplicationMenu(menu);
 		} catch {}
 	}
 	// Set Dock icon on macOS if available
 	try {
-		if (process.platform === 'darwin' && app.dock) {
+		if (process.platform === "darwin" && app.dock) {
 			const isDev = !app.isPackaged;
 			const dockCandidates = [
-				...(isDev ? [
-					path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
-					path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
-					path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
-				] : []),
+				...(isDev
+					? [
+							path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
+							path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
+							path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png")
+					  ]
+					: []),
 				path.join(process.resourcesPath ?? "", "Extended Clipboard_App_Icon.png"),
 				path.join(__dirname, "../Extended Clipboard_App_Icon.png"),
 				path.join(process.cwd(), "src", "assets", "app_icon", "Extended Clipboard_App_Icon.png"),
 				path.join(process.cwd(), "Extended Clipboard_App_Icon.png"),
-				path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png"),
+				path.join(process.cwd(), "assets", "Extended Clipboard_App_Icon.png")
 			];
 			for (const p of dockCandidates) {
 				try {
 					const img = nativeImage.createFromPath(p);
-					if (!img.isEmpty()) { app.dock.setIcon(img); break; }
+					if (!img.isEmpty()) {
+						app.dock.setIcon(img);
+						break;
+					}
 				} catch {}
 			}
 		}
 	} catch {}
 	createWindow();
 	createTray();
-	try { lastClipboard = clipboard.readText() || ""; } catch {}
-		// Start polling system clipboard even when the app is unfocused
+	try {
+		lastClipboard = clipboard.readText() || "";
+	} catch {}
+	// Start polling system clipboard even when the app is unfocused
 	const tick = async () => {
 		try {
 			const text = clipboard.readText() || "";
 			if (!text || text === lastClipboard) return;
 			lastClipboard = text;
-				// Determine frontmost app name (best-effort) and notify renderer; renderer will perform API call and update UI
+			// Determine frontmost app name (best-effort) and notify renderer; renderer will perform API call and update UI
 			let appName: string | undefined;
-			try { appName = await getFrontmostAppName(); } catch {}
-			mainWindow?.webContents.send('clipboard:new', { text, appName });
+			try {
+				appName = await getFrontmostAppName();
+			} catch {}
+			mainWindow?.webContents.send("clipboard:new", { text, appName });
 		} catch {}
 	};
 	bgInterval = setNodeInterval(tick, 500); // 0.5s polling
 
 	// When renderer asks, report that background polling is active so it can disable its own poller
-	ipcMain.handle('clipboard:isBackgroundActive', async () => true);
-	ipcMain.handle('app:name', async () => app.getName()); // Electron app name
-	ipcMain.handle('app:frontmost', async () => {
-		try { return await getFrontmostAppName(); } catch { return undefined; }
+	ipcMain.handle("clipboard:isBackgroundActive", async () => true);
+	ipcMain.handle("app:name", async () => app.getName()); // Electron app name
+	ipcMain.handle("app:frontmost", async () => {
+		try {
+			return await getFrontmostAppName();
+		} catch {
+			return undefined;
+		}
 	});
 
 	// Tray IPC handlers
-	ipcMain.handle('tray:isSupported', async () => process.platform === 'darwin');
-	ipcMain.handle('tray:updateClips', async (_, clips: any[]) => {
+	ipcMain.handle("tray:isSupported", async () => process.platform === "darwin");
+	ipcMain.handle("tray:updateClips", async (_, clips: any[]) => {
 		trayClips = clips;
 		updateTrayClips();
 	});
-	ipcMain.handle('tray:setSearchQuery', async (_, query: string) => {
+	ipcMain.handle("tray:setSearchQuery", async (_, query: string) => {
 		traySearchQuery = query;
 		updateTrayClips();
 	});
@@ -518,7 +537,7 @@ app.on("window-all-closed", () => {
 });
 // 'activate' is handled after whenReady
 
-app.on('before-quit', () => {
+app.on("before-quit", () => {
 	if (bgInterval) clearInterval(bgInterval);
 	bgInterval = null;
 	if (tray) {

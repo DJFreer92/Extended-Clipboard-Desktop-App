@@ -1,102 +1,112 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Content Security Policy: Adjusted for web deployment while maintaining security -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src 'none'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self' blob:;" />
-    
-    <title>Extended Clipboard - Web Version</title>
-    <meta name="description" content="Keep your clipboard history organized, easily accessible, and secure. Modern web application for intelligent clipboard management." />
-    <meta name="author" content="Daniel Freer" />
-    <meta name="keywords" content="clipboard, history, productivity, web app, clipboard manager" />
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<!-- Content Security Policy: Adjusted for web deployment while maintaining security -->
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-src 'none'; script-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https:; worker-src 'self' blob:;"
+		/>
 
-    <!-- Web app manifest for PWA capabilities -->
-    <link rel="manifest" href="./manifest.json" />
+		<title>Extended Clipboard - Web Version</title>
+		<meta
+			name="description"
+			content="Keep your clipboard history organized, easily accessible, and secure. Modern web application for intelligent clipboard management."
+		/>
+		<meta name="author" content="Daniel Freer" />
+		<meta name="keywords" content="clipboard, history, productivity, web app, clipboard manager" />
 
-    <!-- Favicons and app icons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+		<!-- Web app manifest for PWA capabilities -->
+		<link rel="manifest" href="./manifest.json" />
 
-    <!-- Theme color for mobile browsers -->
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="msapplication-TileColor" content="#2563eb" />
+		<!-- Favicons and app icons -->
+		<link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+		<link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+		<link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
 
-    <!-- Open Graph tags for social sharing -->
-    <meta property="og:title" content="Extended Clipboard - Web Version" />
-    <meta property="og:description" content="Keep your clipboard history organized, easily accessible, and secure." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://djfreer92.github.io/Extended-Clipboard-Desktop-App/" />
+		<!-- Theme color for mobile browsers -->
+		<meta name="theme-color" content="#2563eb" />
+		<meta name="msapplication-TileColor" content="#2563eb" />
 
-    <!-- Twitter Card tags -->
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Extended Clipboard - Web Version" />
-    <meta name="twitter:description" content="Keep your clipboard history organized, easily accessible, and secure." />
+		<!-- Open Graph tags for social sharing -->
+		<meta property="og:title" content="Extended Clipboard - Web Version" />
+		<meta property="og:description" content="Keep your clipboard history organized, easily accessible, and secure." />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content="https://djfreer92.github.io/Extended-Clipboard-Desktop-App/" />
 
-    <!-- Preload critical resources -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    
-    <!-- Web-specific styles and optimizations -->
-    <style>
-      /* Loading screen styles */
-      .loading-screen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #ffffff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-direction: column;
-        z-index: 9999;
-      }
-      .loading-spinner {
-        width: 40px;
-        height: 40px;
-        border: 3px solid #f3f4f6;
-        border-top: 3px solid #2563eb;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-      .loading-text {
-        margin-top: 16px;
-        color: #6b7280;
-        font-family: system-ui, -apple-system, sans-serif;
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Loading screen -->
-    <div id="loading" class="loading-screen">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">Loading Extended Clipboard...</div>
-    </div>
-    
-    <!-- Main app container -->
-    <div id="root"></div>
-    
-    <!-- Web entry point -->
-    <script type="module" src="/src/renderer/web-main.tsx"></script>
-    
-    <!-- Remove loading screen once app is loaded -->
-    <script>
-      // Remove loading screen once the React app has mounted
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          const loading = document.getElementById('loading');
-          if (loading) {
-            loading.style.opacity = '0';
-            setTimeout(() => loading.remove(), 300);
-          }
-        }, 1000);
-      });
-    </script>
-  </body>
+		<!-- Twitter Card tags -->
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content="Extended Clipboard - Web Version" />
+		<meta name="twitter:description" content="Keep your clipboard history organized, easily accessible, and secure." />
+
+		<!-- Preload critical resources -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+
+		<!-- Web-specific styles and optimizations -->
+		<style>
+			/* Loading screen styles */
+			.loading-screen {
+				position: fixed;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background: #ffffff;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				flex-direction: column;
+				z-index: 9999;
+			}
+			.loading-spinner {
+				width: 40px;
+				height: 40px;
+				border: 3px solid #f3f4f6;
+				border-top: 3px solid #2563eb;
+				border-radius: 50%;
+				animation: spin 1s linear infinite;
+			}
+			@keyframes spin {
+				0% {
+					transform: rotate(0deg);
+				}
+				100% {
+					transform: rotate(360deg);
+				}
+			}
+			.loading-text {
+				margin-top: 16px;
+				color: #6b7280;
+				font-family: system-ui, -apple-system, sans-serif;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Loading screen -->
+		<div id="loading" class="loading-screen">
+			<div class="loading-spinner"></div>
+			<div class="loading-text">Loading Extended Clipboard...</div>
+		</div>
+
+		<!-- Main app container -->
+		<div id="root"></div>
+
+		<!-- Web entry point -->
+		<script type="module" src="/src/renderer/web-main.tsx"></script>
+
+		<!-- Remove loading screen once app is loaded -->
+		<script>
+			// Remove loading screen once the React app has mounted
+			window.addEventListener("load", () => {
+				setTimeout(() => {
+					const loading = document.getElementById("loading");
+					if (loading) {
+						loading.style.opacity = "0";
+						setTimeout(() => loading.remove(), 300);
+					}
+				}, 1000);
+			});
+		</script>
+	</body>
 </html>

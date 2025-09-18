@@ -131,17 +131,17 @@ The tray feature uses Electron's native Tray API with custom IPC communication:
 
 ## 📜 Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start development environment (TypeScript watcher + Vite dev server + Electron with auto-reload) |
-| `npm run build` | Build both Electron main process and React renderer for production |
-| `npm start` | Launch the built production application |
-| `npm test` | Run unit tests with Vitest |
-| `npm run test:watch` | Run tests in watch mode for development |
-| `npm run coverage` | Generate test coverage report |
-| `npm run build:main` | Build only the Electron main process |
-| `npm run watch:main` | Watch and rebuild the main process on changes |
-| `npm run dev:renderer` | Start only the Vite dev server for the renderer |
+| Command                | Description                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `npm run dev`          | Start development environment (TypeScript watcher + Vite dev server + Electron with auto-reload) |
+| `npm run build`        | Build both Electron main process and React renderer for production                               |
+| `npm start`            | Launch the built production application                                                          |
+| `npm test`             | Run unit tests with Vitest                                                                       |
+| `npm run test:watch`   | Run tests in watch mode for development                                                          |
+| `npm run coverage`     | Generate test coverage report                                                                    |
+| `npm run build:main`   | Build only the Electron main process                                                             |
+| `npm run watch:main`   | Watch and rebuild the main process on changes                                                    |
+| `npm run dev:renderer` | Start only the Vite dev server for the renderer                                                  |
 
 ## ⚙️ Configuration
 
@@ -370,13 +370,13 @@ The project includes `electron-builder` configuration for creating distributable
 
 #### Available Packaging Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run pack` | Create unpackaged development build (for testing) |
-| `npm run dist` | Create distributable packages for current platform |
-| `npm run dist:mac` | Create macOS packages (.dmg, .zip) for both Intel and Apple Silicon |
-| `npm run dist:win` | Create Windows packages (.exe, portable) |
-| `npm run dist:linux` | Create Linux packages (.AppImage, .deb) |
+| Command              | Description                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `npm run pack`       | Create unpackaged development build (for testing)                   |
+| `npm run dist`       | Create distributable packages for current platform                  |
+| `npm run dist:mac`   | Create macOS packages (.dmg, .zip) for both Intel and Apple Silicon |
+| `npm run dist:win`   | Create Windows packages (.exe, portable)                            |
+| `npm run dist:linux` | Create Linux packages (.AppImage, .deb)                             |
 
 #### Step-by-Step Release Process
 
@@ -408,16 +408,19 @@ The project includes `electron-builder` configuration for creating distributable
    Packages are created in the `release/` directory:
 
    **macOS:**
+
    - `Extended Clipboard-{version}.dmg` (Intel installer)
    - `Extended Clipboard-{version}-arm64.dmg` (Apple Silicon installer)
    - `Extended Clipboard-{version}-mac.zip` (Intel portable)
    - `Extended Clipboard-{version}-arm64-mac.zip` (Apple Silicon portable)
 
    **Windows:**
+
    - `Extended Clipboard Setup {version}.exe` (installer)
    - `Extended Clipboard {version}.exe` (portable)
 
    **Linux:**
+
    - `Extended Clipboard-{version}.AppImage` (portable)
    - `extended-clipboard_{version}_amd64.deb` (Debian/Ubuntu installer)
 
@@ -428,6 +431,7 @@ The project includes `electron-builder` configuration for creating distributable
 ##### DMG Installer (Recommended)
 
 1. Download the appropriate DMG file for your Mac:
+
    - Intel Macs: `Extended Clipboard-{version}.dmg`
    - Apple Silicon Macs: `Extended Clipboard-{version}-arm64.dmg`
 
